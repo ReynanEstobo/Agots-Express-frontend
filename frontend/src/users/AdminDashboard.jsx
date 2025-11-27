@@ -20,7 +20,7 @@ const AdminDashboard = () => {
         {/* Page Content */}
         <main className="p-6 space-y-6">
           {/* Page Title */}
-          <div>
+          <div className="mb-10">
             <h1 className="text-3xl font-bold text-gray-900 mb-1">
               Dashboard Overview
             </h1>
