@@ -1,12 +1,29 @@
-// DashboardSidebar.jsx
-import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { ClipboardList, Home, LineChart, Menu, MessageSquare, Users, Utensils } from "lucide-react";
+import {
+  ClipboardList,
+  Home,
+  LineChart,
+  Menu,
+  MessageSquare,
+  Users,
+  Utensils,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export const DashboardSidebar = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // Get current path
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const location = useLocation();
+
+  // Persistent collapsed state using localStorage
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    return saved === "true";
+  });
+
+  // Save collapsed state whenever it changes
+  useEffect(() => {
+    localStorage.setItem("sidebar-collapsed", isCollapsed);
+  }, [isCollapsed]);
 
   const menuItems = [
     ["Dashboard", Home, "/admin-dashboard"],
@@ -20,16 +37,15 @@ export const DashboardSidebar = () => {
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-full bg-[#0E2244] text-white flex flex-col justify-between transition-all duration-500 ease-in-out`}
+      className="fixed left-0 top-0 h-full bg-[#0E2244] text-white flex flex-col justify-between z-50 transition-all duration-500 ease-in-out overflow-hidden"
       style={{ width: isCollapsed ? "80px" : "256px" }}
     >
-      {/* Top Section */}
-      <div className="flex flex-col p-4">
+      <div className="flex flex-col h-full">
         {/* Collapse Button */}
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end p-4">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 rounded hover:bg-white/10 transition duration-300 ease-in-out"
+            className="p-2 rounded hover:bg-white/10 transition duration-300"
           >
             <Menu size={24} />
           </button>
@@ -37,13 +53,13 @@ export const DashboardSidebar = () => {
 
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <div className="bg-yellow-400 rounded-full p-2 transition-all duration-500 ease-in-out">
+          <div className="bg-yellow-400 rounded-full p-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="48"
               height="48"
               viewBox="0 0 64 64"
-              className="w-10 h-10 cursor-pointer transition-all duration-500 ease-in-out hover:animate-pulse"
+              className="w-10 h-10 cursor-pointer"
             >
               <path
                 fill="#000000"
@@ -54,41 +70,35 @@ export const DashboardSidebar = () => {
         </div>
 
         {/* Menu Items */}
-        <nav className="flex flex-col gap-2">
+        <nav className="flex flex-col gap-2 flex-1 overflow-y-auto p-4">
           {menuItems.map(([label, Icon, path], i) => {
             const isActive = location.pathname === path;
             return (
               <button
                 key={i}
                 onClick={() => navigate(path)}
-                className={`flex items-center w-full px-3 py-2 rounded-lg transition-all duration-500 ease-in-out ${
+                className={`flex items-center w-full px-3 py-2 rounded-lg transition-colors duration-200 ${
                   isActive ? "bg-white/20" : "hover:bg-white/10"
                 }`}
               >
                 <div className="flex-shrink-0 w-6 flex justify-center">
                   <Icon size={20} color={isActive ? "#FFD700" : "#FFFFFF"} />
                 </div>
-
-                <span
-                  className={`ml-3 transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap ${
-                    isCollapsed ? "opacity-0 max-w-0" : "opacity-100 max-w-full"
-                  }`}
-                >
-                  {label}
-                </span>
+                {!isCollapsed && (
+                  <span className="ml-3 whitespace-nowrap">{label}</span>
+                )}
               </button>
             );
           })}
         </nav>
-      </div>
 
-      {/* Footer */}
-      <div
-        className={`text-center text-gray-300 text-sm mt-6 border-t border-white/20 pt-4 transition-all duration-500 ease-in-out overflow-hidden ${
-          isCollapsed ? "opacity-0 max-h-0" : "opacity-100 max-h-20"
-        }`}
-      >
-        &copy; {new Date().getFullYear()} Agot's Express. All rights reserved.
+        {/* Footer */}
+        {!isCollapsed && (
+          <div className="text-center text-gray-300 text-sm mt-6 border-t border-white/20 pt-4">
+            &copy; {new Date().getFullYear()} Agot's Express. All rights
+            reserved.
+          </div>
+        )}
       </div>
     </aside>
   );
