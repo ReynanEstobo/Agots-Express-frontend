@@ -14,13 +14,11 @@ export const DashboardSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Persistent collapsed state using localStorage
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem("sidebar-collapsed");
     return saved === "true";
   });
 
-  // Save collapsed state whenever it changes
   useEffect(() => {
     localStorage.setItem("sidebar-collapsed", isCollapsed);
   }, [isCollapsed]);
@@ -28,7 +26,7 @@ export const DashboardSidebar = () => {
   const menuItems = [
     ["Dashboard", Home, "/admin-dashboard"],
     ["Orders", ClipboardList, "/orders"],
-    ["Customers", Users, "/customers"], // <-- fixed path here
+    ["Customers", Users, "/customers"],
     ["Menu", Utensils, "/menu"],
     ["Feedback", MessageSquare, "/feedback"],
     ["Announcements", ClipboardList, "/announcements"],
@@ -41,7 +39,6 @@ export const DashboardSidebar = () => {
       style={{ width: isCollapsed ? "80px" : "256px" }}
     >
       <div className="flex flex-col h-full">
-        {/* Collapse Button */}
         <div className="flex justify-end p-4">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -51,7 +48,6 @@ export const DashboardSidebar = () => {
           </button>
         </div>
 
-        {/* Logo */}
         <div className="flex justify-center mb-6">
           <div className="bg-yellow-400 rounded-full p-2">
             <svg
@@ -69,7 +65,6 @@ export const DashboardSidebar = () => {
           </div>
         </div>
 
-        {/* Menu Items */}
         <nav className="flex flex-col gap-2 flex-1 overflow-y-auto p-4">
           {menuItems.map(([label, Icon, path], i) => {
             const isActive = location.pathname === path;
@@ -92,7 +87,6 @@ export const DashboardSidebar = () => {
           })}
         </nav>
 
-        {/* Footer */}
         {!isCollapsed && (
           <div className="text-center text-gray-300 text-sm mt-6 border-t border-white/20 pt-4">
             &copy; {new Date().getFullYear()} Agot's Express. All rights

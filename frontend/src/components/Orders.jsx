@@ -8,6 +8,13 @@ import { Button } from "../ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { DashboardHeader } from "../ui/DashboardHeader";
 import { DashboardSidebar } from "../ui/DashboardSidebar";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/Dialog";
 import { Input } from "../ui/Input";
 import {
   Select,
@@ -81,6 +88,24 @@ const Orders = () => {
     }
   };
 
+  const statsCards = [
+    {
+      title: "Total Orders",
+      value: stats.totalOrders,
+      iconColor: "bg-blue-400",
+    },
+    { title: "Preparing", value: stats.preparing, iconColor: "bg-orange-400" },
+    { title: "Pending", value: stats.pending, iconColor: "bg-yellow-400" },
+    { title: "Completed", value: stats.completed, iconColor: "bg-green-500" },
+  ];
+
+  const gradientMap = {
+    "bg-yellow-400": "bg-gradient-to-br from-yellow-400 to-yellow-300",
+    "bg-blue-400": "bg-gradient-to-br from-blue-400 to-blue-300",
+    "bg-green-500": "bg-gradient-to-br from-green-500 to-green-400",
+    "bg-orange-400": "bg-gradient-to-br from-orange-400 to-orange-300",
+  };
+
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
       <DashboardSidebar />
@@ -91,62 +116,41 @@ const Orders = () => {
           {/* Page Header */}
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-black">
+              <h1 className="text-3xl font-bold text-[#1b2559]">
                 Orders Management
               </h1>
-              <p className="text-gray-500">View and manage all restaurant orders</p>
+              <p className="text-gray-500 mb-7">
+                View and manage all restaurant orders
+              </p>
             </div>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="flex items-center gap-3">
-                <ShoppingCart className="text-[#1b2559] w-6 h-6" />
-                <div>
-                  <div className="text-3xl font-bold text-[#1b2559]">
-                    {stats.totalOrders}
-                  </div>
-                  <div className="text-gray-500 text-sm">Total Orders</div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+            {statsCards.map((card, idx) => {
+              const gradientClass =
+                gradientMap[card.iconColor] || "bg-gray-400";
+              const textColor = card.iconColor.replace("bg-", "text-");
 
-            <Card>
-              <CardContent className="flex items-center gap-3">
-                <ShoppingCart className="text-orange-500 w-6 h-6" />
-                <div>
-                  <div className="text-3xl font-bold text-orange-500">
-                    {stats.preparing}
+              return (
+                <div
+                  key={idx}
+                  className="bg-white rounded-xl shadow-md hover:shadow-xl transition p-6 relative flex items-start gap-4"
+                >
+                  <div
+                    className={`w-16 h-16 flex items-center justify-center rounded-lg ${gradientClass} absolute -top-6 left-5 shadow-lg`}
+                  >
+                    <ShoppingCart className="text-white w-6 h-6" />
                   </div>
-                  <div className="text-gray-500 text-sm">Preparing</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="flex items-center gap-3">
-                <ShoppingCart className="text-yellow-600 w-6 h-6" />
-                <div>
-                  <div className="text-3xl font-bold text-yellow-600">
-                    {stats.pending}
+                  <div className="flex-1 pl-20">
+                    <p className="text-gray-500 text-sm">{card.title}</p>
+                    <p className={`text-2xl font-bold mt-1 ${textColor}`}>
+                      {card.value}
+                    </p>
                   </div>
-                  <div className="text-gray-500 text-sm">Pending</div>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="flex items-center gap-3">
-                <ShoppingCart className="text-green-600 w-6 h-6" />
-                <div>
-                  <div className="text-3xl font-bold text-green-600">
-                    {stats.completed}
-                  </div>
-                  <div className="text-gray-500 text-sm">Completed</div>
-                </div>
-              </CardContent>
-            </Card>
+              );
+            })}
           </div>
 
           {/* Orders Table */}
@@ -231,12 +235,20 @@ const Orders = () => {
         </main>
 
         {/* Modal */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-xl w-96 max-h-[80vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4">
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+          <DialogContent className="fixed top-1/2 left-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-xl shadow-lg z-50">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-center text-[#1b2559]">
                 Order #{selectedOrderId} Details
-              </h2>
+              </DialogTitle>
+            </DialogHeader>
+            <DialogClose asChild>
+              <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                X
+              </button>
+            </DialogClose>
+
+            <div className="mt-4">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -261,12 +273,15 @@ const Orders = () => {
                   ))}
                 </TableBody>
               </Table>
-              <div className="mt-4 flex justify-end">
-                <Button onClick={() => setShowModal(false)}>Close</Button>
-              </div>
             </div>
-          </div>
-        )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button variant="secondary" onClick={() => setShowModal(false)}>
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -80,7 +80,7 @@ export default function Announcements() {
     setAnnouncements(announcements.filter((a) => a.id !== id));
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F4F6F9]">
       <DashboardSidebar />
       <div className="pl-64">
         <DashboardHeader />

@@ -1,19 +1,46 @@
+// Feedback.jsx
 import { AlertCircle, MessageSquare, Star, ThumbsUp } from "lucide-react";
 import { useState } from "react";
-import { useToast } from "../hooks/use-toast"; // make sure this exists
+import { useToast } from "../hooks/use-toast";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
+import { Card } from "../ui/Card";
 import { DashboardHeader } from "../ui/DashboardHeader";
 import { DashboardSidebar } from "../ui/DashboardSidebar";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "../ui/Dialog";
 import { Textarea } from "../ui/Textarea";
+
+// StatsCard with Orders.jsx style
+const StatsCard = ({ title, value, icon: Icon, iconColor }) => {
+  const gradientMap = {
+    "bg-yellow-400": "bg-gradient-to-br from-yellow-400 to-yellow-300",
+    "bg-blue-400": "bg-gradient-to-br from-blue-400 to-blue-300",
+    "bg-green-500": "bg-gradient-to-br from-green-500 to-green-400",
+    "bg-orange-400": "bg-gradient-to-br from-orange-400 to-orange-300",
+  };
+  const gradientClass = gradientMap[iconColor] || "bg-gray-400";
+
+  return (
+    <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition p-6 relative flex items-start gap-4">
+      <div
+        className={`w-16 h-16 flex items-center justify-center rounded-lg ${gradientClass} absolute -top-6 left-5 shadow-lg`}
+      >
+        {Icon && <Icon size={28} className="text-white" />}
+      </div>
+      <div className="flex-1 pl-20">
+        <p className="text-gray-500 text-sm">{title}</p>
+        <p className="text-2xl font-bold mt-1">{value}</p>
+      </div>
+    </div>
+  );
+};
 
 // Sample feedback data
 const feedbackData = [
@@ -49,12 +76,11 @@ const feedbackData = [
   },
 ];
 
-const Feedback = () => {
+export default function Feedback() {
   const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [response, setResponse] = useState("");
   const { toast: triggerToast } = useToast();
 
-  // Handle sending response
   const handleRespond = () => {
     if (!response.trim()) return;
     triggerToast({
@@ -65,21 +91,12 @@ const Feedback = () => {
     setSelectedFeedback(null);
   };
 
-  // Helper for rating color
-  const getRatingColor = (rating) => {
-    if (rating >= 4) return "text-green-500";
-    if (rating >= 3) return "text-yellow-500";
-    return "text-red-500";
-  };
-
-  // Helper for status badge
-  const getStatusBadge = (status) => {
-    return status === "resolved" ? (
+  const getStatusBadge = (status) =>
+    status === "resolved" ? (
       <Badge className="bg-green-500 text-white">Resolved</Badge>
     ) : (
       <Badge className="bg-yellow-300 text-black">Pending</Badge>
     );
-  };
 
   // Stats calculations
   const avgRating = (
@@ -89,9 +106,37 @@ const Feedback = () => {
   const pendingCount = feedbackData.filter(
     (f) => f.status === "pending"
   ).length;
+  const positiveCount = feedbackData.filter((f) => f.rating >= 4).length;
+
+  const statsCards = [
+    {
+      title: "Average Rating",
+      value: avgRating,
+      icon: Star,
+      iconColor: "bg-yellow-400",
+    },
+    {
+      title: "Total Feedback",
+      value: totalFeedback,
+      icon: MessageSquare,
+      iconColor: "bg-blue-400",
+    },
+    {
+      title: "Pending Review",
+      value: pendingCount,
+      icon: AlertCircle,
+      iconColor: "bg-orange-400",
+    },
+    {
+      title: "Positive Reviews",
+      value: positiveCount,
+      icon: ThumbsUp,
+      iconColor: "bg-green-500",
+    },
+  ];
 
   return (
-    <div className="pl-64 min-h-screen w-full bg-gray-50">
+    <div className="pl-64 min-h-screen w-full bg-[#F4F6F9]">
       <DashboardSidebar />
       <div className="flex-1">
         <DashboardHeader />
@@ -106,67 +151,17 @@ const Feedback = () => {
             </p>
           </div>
 
-          {/* Stats cards */}
+          {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                  <Star className="h-4 w-4" />
-                  Average Rating
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-blue-600">
-                  {avgRating}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Out of 5.0</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Total Feedback
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-blue-700">
-                  {totalFeedback}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">All time</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Pending Review
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-yellow-500">
-                  {pendingCount}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Needs attention</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                  <ThumbsUp className="h-4 w-4" />
-                  Positive Reviews
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-500">
-                  {feedbackData.filter((f) => f.rating >= 4).length}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">4+ stars</p>
-              </CardContent>
-            </Card>
+            {statsCards.map((card, idx) => (
+              <StatsCard
+                key={idx}
+                title={card.title}
+                value={card.value}
+                icon={card.icon}
+                iconColor={card.iconColor}
+              />
+            ))}
           </div>
 
           {/* Feedback List */}
@@ -174,15 +169,15 @@ const Feedback = () => {
             {feedbackData.map((feedback) => (
               <Card
                 key={feedback.id}
-                className="hover:shadow-lg transition-shadow"
+                className="hover:shadow-xl transition-shadow"
               >
-                <CardHeader>
+                <div className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-lg">
+                        <p className="text-lg font-semibold">
                           {feedback.customer}
-                        </CardTitle>
+                        </p>
                         {getStatusBadge(feedback.status)}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -199,25 +194,22 @@ const Feedback = () => {
                           key={i}
                           className={`h-5 w-5 ${
                             i < feedback.rating
-                              ? `fill-current ${getRatingColor(
-                                  feedback.rating
-                                )}`
+                              ? "fill-current text-green-500"
                               : "text-gray-300"
                           }`}
                         />
                       ))}
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 mb-4">{feedback.comment}</p>
+                  <p className="text-gray-600 mt-3 mb-4">{feedback.comment}</p>
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button
                         variant="outline"
                         onClick={() => setSelectedFeedback(feedback)}
+                        className="flex items-center gap-2"
                       >
-                        <MessageSquare className="h-4 w-4 mr-2" />
+                        <MessageSquare className="h-4 w-4" />
                         Respond
                       </Button>
                     </DialogTrigger>
@@ -225,7 +217,12 @@ const Feedback = () => {
                       <DialogHeader>
                         <DialogTitle>Respond to Feedback</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-4">
+                      <DialogClose asChild>
+                        <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                          X
+                        </button>
+                      </DialogClose>
+                      <div className="space-y-4 mt-2">
                         <div>
                           <p className="text-sm text-gray-500 mb-1">
                             Customer:
@@ -260,7 +257,7 @@ const Feedback = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
-                </CardContent>
+                </div>
               </Card>
             ))}
           </div>
@@ -268,6 +265,4 @@ const Feedback = () => {
       </div>
     </div>
   );
-};
-
-export default Feedback;
+}
