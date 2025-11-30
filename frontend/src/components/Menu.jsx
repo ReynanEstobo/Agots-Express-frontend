@@ -2,11 +2,17 @@ import {
   Coffee,
   Drumstick,
   Edit,
+  Flame,
+  Gift,
+  Heart as HeartIcon,
   IceCream,
   Plus,
   Soup,
+  Star,
   Trash2,
+  Zap,
 } from "lucide-react";
+
 import { useEffect, useState } from "react";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -67,6 +73,46 @@ const groupStatsConfig = {
   "Combo Meal": { icon: Plus, iconColor: "bg-indigo-500" },
 };
 
+// Category badge colors
+const getCategoryColor = (category) => {
+  switch (category) {
+    case "Best Seller":
+      return "bg-yellow-500 text-white";
+    case "Most Bought":
+      return "bg-blue-500 text-white";
+    case "New Arrival":
+      return "bg-green-500 text-white";
+    case "Limited Offer":
+      return "bg-orange-500 text-white";
+    case "Recommended":
+      return "bg-pink-500 text-white";
+    case "Specialty":
+      return "bg-purple-500 text-white";
+    default:
+      return "bg-gray-300 text-black";
+  }
+};
+
+// Category icons inside badges
+const getCategoryIcon = (category) => {
+  switch (category) {
+    case "Best Seller":
+      return <Flame className="h-4 w-4 text-white" />;
+    case "Most Bought":
+      return <Star className="h-4 w-4 text-white" />;
+    case "New Arrival":
+      return <Zap className="h-4 w-4 text-white" />;
+    case "Limited Offer":
+      return <Gift className="h-4 w-4 text-white" />;
+    case "Recommended":
+      return <HeartIcon className="h-4 w-4 text-white" />;
+    case "Specialty":
+      return <IceCream className="h-4 w-4 text-white" />;
+    default:
+      return null;
+  }
+};
+
 export default function Menu() {
   const [menu, setMenu] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -82,107 +128,18 @@ export default function Menu() {
   const [successMessage, setSuccessMessage] = useState("");
 
   // Fetch menu items
+  const loadMenu = async () => {
+    try {
+      const data = await fetchMenuItems();
+      setMenu(data || []);
+    } catch (err) {
+      console.error("Failed to fetch menu items:", err);
+    }
+  };
+
   useEffect(() => {
-    const loadMenu = async () => {
-      try {
-        const data = await fetchMenuItems();
-        setMenu(data || []);
-      } catch (err) {
-        console.error("Failed to fetch menu items:", err);
-      }
-    };
     loadMenu();
   }, []);
-
-  // Category badge colors
-  const getCategoryColor = (category) => {
-    switch (category) {
-      case "Best Seller":
-        return "bg-yellow-500 text-white";
-      case "Specialty":
-        return "bg-purple-500 text-white";
-      case "Most Bought":
-        return "bg-blue-500 text-white";
-      case "New Arrival":
-        return "bg-green-500 text-white";
-      case "Limited Offer":
-        return "bg-orange-500 text-white";
-      case "Recommended":
-        return "bg-pink-500 text-white";
-      case "Combo Meal":
-        return "bg-indigo-500 text-white";
-      default:
-        return "bg-gray-300 text-black";
-    }
-  };
-
-  // Category icons inside badges
-  const getCategoryIcon = (category) => {
-    switch (category) {
-      case "Best Seller":
-      case "Most Bought":
-      case "Combo Meal":
-        return <Drumstick className="h-4 w-4 text-white" />;
-      case "Specialty":
-        return <Soup className="h-4 w-4 text-white" />;
-      case "New Arrival":
-      case "Limited Offer":
-        return <Coffee className="h-4 w-4 text-white" />;
-      case "Recommended":
-        return <IceCream className="h-4 w-4 text-white" />;
-      default:
-        return null;
-    }
-  };
-
-  // Menu item card component
-  const MenuItemCard = ({ item }) => {
-    return (
-      <Card className="hover:shadow-xl transition p-4">
-        <CardContent className="flex justify-between items-start gap-4">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-black">{item.name}</h3>
-            <p className="text-sm text-gray-500 mb-2">{item.description}</p>
-            <div className="flex gap-2">
-              {item.category && item.category !== "None" && (
-                <Badge
-                  className={`flex items-center gap-1 ${getCategoryColor(
-                    item.category
-                  )}`}
-                >
-                  {getCategoryIcon(item.category)} {item.category}
-                </Badge>
-              )}
-              <Badge className="bg-gray-200 text-gray-800 flex items-center gap-1">
-                {item.group}
-              </Badge>
-            </div>
-          </div>
-          <div className="text-right flex flex-col justify-between">
-            <div className="text-xl font-bold text-black mb-2">
-              {item.price}
-            </div>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => openModal(item)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(item.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
 
   const openModal = (item = null) => {
     setSelectedItem(
@@ -262,6 +219,54 @@ export default function Menu() {
     } catch (err) {
       setErrorMessage("Failed to delete menu item: " + err.message);
     }
+  };
+
+  const MenuItemCard = ({ item }) => {
+    return (
+      <Card className="hover:shadow-xl transition p-4">
+        <CardContent className="flex justify-between items-start gap-4">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-black">{item.name}</h3>
+            <p className="text-sm text-gray-500 mb-2">{item.description}</p>
+            <div className="flex gap-2">
+              {item.category && item.category !== "None" && (
+                <Badge
+                  className={`flex items-center gap-1 ${getCategoryColor(
+                    item.category
+                  )}`}
+                >
+                  {getCategoryIcon(item.category)} {item.category}
+                </Badge>
+              )}
+              <Badge className="bg-gray-200 text-gray-800 flex items-center gap-1">
+                {item.group}
+              </Badge>
+            </div>
+          </div>
+          <div className="text-right flex flex-col justify-between">
+            <div className="text-xl font-bold text-black mb-2">
+              {item.price}
+            </div>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => openModal(item)}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDelete(item.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
