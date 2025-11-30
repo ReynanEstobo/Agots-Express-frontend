@@ -38,13 +38,17 @@ const Analytics = () => {
   const [popularItems, setPopularItems] = useState([]);
   const [keyMetrics, setKeyMetrics] = useState([]);
 
-  // Percentage change helper
+  // Percentage change helper with percentage first
   const calcPercentChange = (current, prev) => {
     current = Number(current ?? 0);
     prev = Number(prev ?? 0);
-    if (prev === 0) return current === 0 ? "0%" : "+100%";
+
+    if (prev === 0 && current === 0) return "0% from last month";
+    if (prev === 0) return "+100% from last month";
+
     const percent = ((current - prev) / prev) * 100;
-    return (percent > 0 ? "+" : "") + percent.toFixed(1) + "%";
+    const sign = percent > 0 ? "+" : "";
+    return `${sign}${percent.toFixed(1)}% from last month`;
   };
 
   const fetchAnalyticsData = async () => {
@@ -134,8 +138,14 @@ const Analytics = () => {
     }
   };
 
+  // Fetch every 20 seconds
   useEffect(() => {
     fetchAnalyticsData();
+    const interval = setInterval(() => {
+      fetchAnalyticsData();
+    }, 20000); // 20 sec
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -221,7 +231,11 @@ const Analytics = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={revenueData}>
+                  <AreaChart
+                    data={revenueData}
+                    cursor={false}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <defs>
                       <linearGradient
                         id="revenueGradient"
@@ -275,7 +289,7 @@ const Analytics = () => {
                       stroke="hsl(var(--accent))"
                       strokeWidth={3}
                       fill="url(#revenueGradient)"
-                      activeDot={{ r: 6 }}
+                      activeDot={false} // remove active dot
                       isAnimationActive
                     />
                     <Area
@@ -285,7 +299,7 @@ const Analytics = () => {
                       name="Orders"
                       stroke="#FF7F50"
                       fill="rgba(255,127,80,0.2)"
-                      activeDot={{ r: 6 }}
+                      activeDot={false} // remove active dot
                       isAnimationActive
                     />
                   </AreaChart>
@@ -299,7 +313,7 @@ const Analytics = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
+                  <PieChart onClick={(e) => e.stopPropagation()}>
                     <Pie
                       data={groupData}
                       cx="50%"
@@ -335,7 +349,11 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={popularItems}>
+                <BarChart
+                  data={popularItems}
+                  cursor={false}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="hsl(var(--border))"
@@ -354,6 +372,7 @@ const Analytics = () => {
                     fill="hsl(var(--accent))"
                     radius={[8, 8, 0, 0]}
                     stroke="none"
+                    isAnimationActive
                   />
                 </BarChart>
               </ResponsiveContainer>
