@@ -10,7 +10,6 @@ import {
   MapPin,
   Phone,
   Star,
-  UtensilsCrossed,
   Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -64,6 +63,57 @@ const Landing = () => {
   const [avgRating, setAvgRating] = useState(null);
   const [totalCustomers, setTotalCustomers] = useState(null);
   const [featuredDishes, setFeaturedDishes] = useState([]);
+
+  //typewriter effect
+  const [typedText, setTypedText] = useState("");
+  const phrases = [
+    "Filipino Flavors",
+    "Filipino Cuisine",
+    "Filipino Delights",
+    "Filipino Traditions",
+    "Filipino Recipes",
+  ];
+  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const typeSpeed = 100; // typing speed in ms
+    const deleteSpeed = 50; // deleting speed in ms
+    const pauseTime = 1500; // pause before deleting
+
+    const handleTyping = () => {
+      const currentPhrase = phrases[currentPhraseIndex];
+
+      if (!isDeleting) {
+        // Typing
+        if (charIndex < currentPhrase.length) {
+          setTypedText(currentPhrase.slice(0, charIndex + 1));
+          setCharIndex((prev) => prev + 1);
+        } else {
+          // Finished typing, wait then delete
+          setTimeout(() => setIsDeleting(true), pauseTime);
+        }
+      } else {
+        // Deleting
+        if (charIndex > 0) {
+          setTypedText(currentPhrase.slice(0, charIndex - 1));
+          setCharIndex((prev) => prev - 1);
+        } else {
+          // Move to next phrase
+          setIsDeleting(false);
+          setCurrentPhraseIndex((prev) => (prev + 1) % phrases.length);
+        }
+      }
+    };
+
+    const timer = setTimeout(
+      handleTyping,
+      isDeleting ? deleteSpeed : typeSpeed
+    );
+
+    return () => clearTimeout(timer);
+  }, [charIndex, isDeleting, currentPhraseIndex, phrases]);
 
   // Initial fetch
   useEffect(() => {
@@ -149,10 +199,21 @@ const Landing = () => {
           <div className="flex items-center justify-between relative">
             <div className="flex items-center gap-2 z-10">
               <div className="w-10 h-10 rounded-lg bg-[#F2C94C] flex items-center justify-center">
-                <UtensilsCrossed className="h-6 w-6 text-white" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 64 64"
+                  className="h-6 w-6 cursor-pointer transition-all duration-100 hover:animate-pulse"
+                >
+                  <path
+                    fill="#FFFFFF"
+                    d="M30.456 20.765c0 2.024-1.844 4.19-4.235 4.19v34.164c0 4.851-6.61 4.851-6.61 0V24.955c-2.328 0-4.355-1.793-4.355-4.479V1.674c0-1.636 2.364-1.698 2.364.064v13.898h1.98V1.61c0-1.503 2.278-1.599 2.278.064v13.963h2.046V1.63c0-1.572 2.21-1.635 2.21.062v13.945h2.013V1.63c0-1.556 2.309-1.617 2.309.062v19.074zm17.633-14.72v53.059c0 4.743-6.624 4.673-6.624 0V38.051h-3.526V6.045c0-7.451 10.151-7.451 10.151 0z"
+                  />
+                </svg>
               </div>
               <span className="text-2xl font-bold text-[#FFFFFF]">
-                Agot's Restaurant
+                Agot's Express
               </span>
             </div>
             <div className="hidden md:flex items-center gap-8 absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
@@ -193,13 +254,23 @@ const Landing = () => {
             <Badge className="bg-[#FFD966] text-[#0A1A3F] px-4 py-1.5">
               Filipino Cuisine with a Modern Twist
             </Badge>
+
+            {/* Hero Heading */}
             <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-              Experience Authentic Filipino Flavors
+              Experience Authentic
             </h1>
+
+            {/* Animated Phrases */}
+            <h2 className="text-5xl md:text-6xl font-bold leading-tight text-[#FFD966] mt-2 min-h-[3rem]">
+              {typedText}
+              <span className="inline-block w-1 h-10 bg-[#FFD966] ml-1 animate-blink"></span>
+            </h2>
+
             <p className="text-xl text-[#FFFFFF]/80 max-w-2xl mx-auto">
               Since decades ago, Agot's Restaurant has been serving traditional
               Filipino dishes made with locally sourced ingredients and love.
             </p>
+
             <div className="flex items-center justify-center gap-4 pt-6">
               <Link to="/order-menu">
                 <Button className="bg-[#FFD966] text-[#0A1A3F] hover:bg-[#FFF3B0] text-lg px-8 transition-colors duration-300">

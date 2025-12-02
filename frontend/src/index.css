@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@keyframes blink {
+  0%,
+  50%,
+  100% {
+    opacity: 1;
+  }
+  25%,
+  75% {
+    opacity: 0;
+  }
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
 :root {
   --accent: 220 80% 50%;
   --secondary: 160 60% 45%;
