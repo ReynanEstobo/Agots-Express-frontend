@@ -1,162 +1,250 @@
 import {
   CheckCircle2,
-  Clock,
   MapPin,
   Package,
   Phone,
   Star,
   TrendingUp,
+  X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { fetchRiderById } from "../api/RiderAPI";
+import {
+  acceptDelivery,
+  completeDelivery,
+  fetchRiderById,
+  fetchRiderOrders,
+  fetchRiderStats,
+} from "../api/RiderAPI";
 import { useToast } from "../hooks/use-toast";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/Tabs";
 
-// Mock data for demonstration
-const mockAssignedDeliveries = [
-  {
-    id: "DEL-001",
-    orderId: "ORD-045",
-    customer: "Juan Dela Cruz",
-    address: "123 Rizal St, Manila",
-    phone: "+63 912 345 6789",
-    items: 3,
-    amount: "₱850",
-    status: "assigned",
-    distance: "2.5 km",
-  },
-  {
-    id: "DEL-002",
-    orderId: "ORD-046",
-    customer: "Maria Santos",
-    address: "456 Bonifacio Ave, Quezon City",
-    phone: "+63 917 654 3210",
-    items: 2,
-    amount: "₱620",
-    status: "assigned",
-    distance: "1.8 km",
-  },
-];
+// Modal to view delivery details
+const DeliveryModal = ({ delivery, onClose }) => {
+  if (!delivery) return null;
 
-const mockDeliveryHistory = [
-  {
-    id: "DEL-098",
-    orderId: "ORD-042",
-    customer: "Pedro Reyes",
-    completedAt: "2 hours ago",
-    amount: "₱950",
-    rating: 5,
-  },
-  {
-    id: "DEL-097",
-    orderId: "ORD-041",
-    customer: "Ana Garcia",
-    completedAt: "3 hours ago",
-    amount: "₱720",
-    rating: 5,
-  },
-  {
-    id: "DEL-096",
-    orderId: "ORD-040",
-    customer: "Jose Lim",
-    completedAt: "4 hours ago",
-    amount: "₱480",
-    rating: 4,
-  },
-];
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Delivery Details</h2>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-full hover:bg-gray-200"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="space-y-3">
+          {[
+            "orderId",
+            "id",
+            "customer",
+            "address",
+            "phone",
+            "items",
+            "amount",
+            "status",
+            "completedAt",
+          ].map((key) => (
+            <div className="flex justify-between" key={key}>
+              <span className="font-medium text-gray-600">
+                {key === "id"
+                  ? "Delivery ID:"
+                  : key === "completedAt"
+                  ? "Completed At:"
+                  : key.charAt(0).toUpperCase() + key.slice(1) + ":"}
+              </span>
+              <span className="font-semibold">
+                {key === "completedAt" && delivery[key]
+                  ? new Date(delivery[key]).toLocaleString("en-PH")
+                  : delivery[key]}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 flex justify-end">
+          <Button
+            style={{ backgroundColor: "#0A1A3F", color: "#FFF" }}
+            onClick={onClose}
+          >
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const RiderDashboard = () => {
-  const { addToast } = useToast(); // <-- fixed toast
-  const [deliveries, setDeliveries] = useState(mockAssignedDeliveries);
+  const { addToast } = useToast();
   const [rider, setRider] = useState({ name: "Loading...", riderId: "" });
+  const [activeDeliveries, setActiveDeliveries] = useState([]);
+  const [deliveryHistory, setDeliveryHistory] = useState([]);
+  const [stats, setStats] = useState({
+    totalDeliveries: 0,
+    totalEarnings: 0,
+    avgRating: 0,
+    totalReviews: 0,
+  });
+  const [selectedDelivery, setSelectedDelivery] = useState(null);
+
+  const riderId = sessionStorage.getItem("user_id");
 
   // Fetch rider info
   useEffect(() => {
-    // Use sessionStorage to allow different tabs different sessions
-    const riderId = sessionStorage.getItem("user_id");
-    console.log("SessionStorage user_id:", riderId);
-
-    if (!riderId) {
-      setRider({ name: "Unknown Rider", riderId: "N/A" });
-      return;
-    }
-
-    let cancelled = false;
+    if (!riderId) return setRider({ name: "Unknown Rider", riderId: "N/A" });
 
     const getRiderInfo = async () => {
       try {
         const data = await fetchRiderById(riderId);
-        if (cancelled) return;
-        console.log("Rider data:", data);
-
         setRider({
           name: data?.name || "Unknown Rider",
           riderId: data?.riderId || riderId,
         });
       } catch (err) {
-        if (cancelled) return;
-        console.error("Failed to fetch rider info:", err);
-        addToast({
-          title: "Error",
-          description: "Failed to fetch rider info",
-        });
+        console.error(err);
+        addToast({ title: "Error", description: "Failed to fetch rider info" });
         setRider({ name: "Unknown Rider", riderId });
       }
     };
-
     getRiderInfo();
+  }, [riderId, addToast]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [addToast]);
+  // Fetch deliveries
+  const fetchDeliveries = async () => {
+    try {
+      const assigned = await fetchRiderOrders(riderId, "assigned");
+      const onTheWay = await fetchRiderOrders(riderId, "on the way");
+      const completed = await fetchRiderOrders(riderId, "completed");
 
-  const handleAcceptDelivery = (deliveryId) => {
-    setDeliveries(
-      deliveries.map((d) =>
-        d.id === deliveryId ? { ...d, status: "in-transit" } : d
-      )
-    );
-    addToast({
-      title: "Delivery Accepted",
-      description: `You've accepted delivery ${deliveryId}`,
-    });
+      setActiveDeliveries(
+        [...assigned, ...onTheWay].map((order) => ({
+          id: order.id,
+          orderId: `ORD-${String(order.id).padStart(3, "0")}`,
+          customer: order.customer_name,
+          address: order.customer_address,
+          phone: order.customer_phone,
+          items: order.items.length,
+          amount: `₱${order.total_amount}`,
+          status: order.status,
+        }))
+      );
+
+      setDeliveryHistory(
+        completed.map((order) => ({
+          id: order.id,
+          orderId: `ORD-${String(order.id).padStart(3, "0")}`,
+          customer: order.customer_name,
+          completedAt: order.completed_at,
+          amount: `₱${order.total_amount}`,
+          rating: order.rating || 0,
+        }))
+      );
+    } catch (err) {
+      console.error(err);
+      addToast({ title: "Error", description: "Failed to fetch deliveries" });
+    }
   };
 
-  const handleMarkDelivered = (deliveryId) => {
-    setDeliveries(deliveries.filter((d) => d.id !== deliveryId));
-    addToast({
-      title: "Delivery Completed",
-      description: `Delivery ${deliveryId} marked as delivered`,
-    });
+  useEffect(() => {
+    if (riderId) fetchDeliveries();
+  }, [riderId]);
+
+  // Fetch stats
+  const fetchStats = async () => {
+    try {
+      const data = await fetchRiderStats(riderId);
+      setStats(data);
+    } catch (err) {
+      console.error("Failed to fetch stats", err);
+      addToast({ title: "Error", description: "Failed to fetch stats" });
+    }
   };
+
+  useEffect(() => {
+    if (riderId) fetchStats();
+  }, [riderId, deliveryHistory]);
+
+  // Accept delivery
+  const handleAcceptDelivery = async (deliveryId) => {
+    try {
+      await acceptDelivery(riderId, deliveryId);
+      addToast({
+        title: "Delivery Accepted",
+        description: `You've accepted delivery ORD-${String(
+          deliveryId
+        ).padStart(3, "0")}`,
+      });
+
+      setActiveDeliveries((prev) =>
+        prev.map((d) =>
+          d.id === deliveryId ? { ...d, status: "on the way" } : d
+        )
+      );
+      fetchStats();
+    } catch (err) {
+      console.error(err);
+      addToast({ title: "Error", description: "Failed to accept delivery" });
+    }
+  };
+
+  // Mark delivery as completed
+  const handleMarkDelivered = async (deliveryId) => {
+    try {
+      await completeDelivery(riderId, deliveryId);
+      addToast({
+        title: "Delivery Completed",
+        description: `Delivery ORD-${String(deliveryId).padStart(
+          3,
+          "0"
+        )} marked as delivered`,
+      });
+
+      // Move delivery from active to history instantly
+      const delivered = activeDeliveries.find((d) => d.id === deliveryId);
+      if (delivered) {
+        setDeliveryHistory((prev) => [
+          {
+            ...delivered,
+            completedAt: new Date().toISOString(),
+            rating: 0,
+          },
+          ...prev,
+        ]);
+      }
+
+      setActiveDeliveries((prev) => prev.filter((d) => d.id !== deliveryId));
+
+      fetchStats();
+    } catch (err) {
+      console.error(err);
+      addToast({
+        title: "Error",
+        description: "Failed to mark delivery as completed",
+      });
+    }
+  };
+
+  const handleViewInfo = (delivery) => setSelectedDelivery(delivery);
+  const closeModal = () => setSelectedDelivery(null);
 
   const getStatusColor = (status) => {
     switch (status) {
       case "assigned":
-        return {
-          backgroundColor: "#F2E26D",
-          color: "#0A1A3F",
-          padding: "0.25rem 1rem",
-          fontWeight: "500",
-        };
-      case "in-transit":
-        return {
-          backgroundColor: "#33C3FF",
-          color: "#FFFFFF",
-          padding: "0.25rem 1rem",
-          fontWeight: "500",
-        };
+        return { backgroundColor: "#F2E26D", color: "#0A1A3F" };
+      case "on the way":
+        return { backgroundColor: "#33C3FF", color: "#FFFFFF" };
       default:
-        return {
-          backgroundColor: "#F5F5F5",
-          color: "#374151",
-          padding: "0.25rem 1rem",
-          fontWeight: "500",
-        };
+        return { backgroundColor: "#F5F5F5", color: "#374151" };
     }
   };
 
@@ -168,7 +256,7 @@ const RiderDashboard = () => {
           position: "sticky",
           top: 0,
           backgroundColor: "#0A1A3F",
-          color: "#FFFFFF",
+          color: "#FFF",
           borderBottom: "1px solid rgba(255,255,255,0.1)",
           zIndex: 40,
         }}
@@ -179,8 +267,8 @@ const RiderDashboard = () => {
             margin: "0 auto",
             padding: "1rem 1.5rem",
             display: "flex",
-            alignItems: "center",
             justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
           <div>
@@ -216,508 +304,171 @@ const RiderDashboard = () => {
             marginBottom: "2rem",
           }}
         >
-          {/* Today's Deliveries */}
-          <Card style={{ transition: "box-shadow 0.2s", cursor: "pointer" }}>
-            <CardHeader style={{ paddingBottom: "0.75rem" }}>
-              <CardTitle
-                style={{
-                  fontSize: "0.875rem",
-                  fontWeight: "500",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  color: "#6B7280",
-                }}
-              >
-                <Package style={{ width: "1rem", height: "1rem" }} />
-                Today's Deliveries
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div
-                style={{
-                  fontSize: "1.875rem",
-                  fontWeight: "700",
-                  color: "#0A1A3F",
-                }}
-              >
-                {deliveries.length}
-              </div>
-              <p
-                style={{
-                  fontSize: "0.75rem",
-                  color: "#6B7280",
-                  marginTop: "0.25rem",
-                }}
-              >
-                +3 from yesterday
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Today's Earnings */}
-          <Card style={{ transition: "box-shadow 0.2s", cursor: "pointer" }}>
-            <CardHeader style={{ paddingBottom: "0.75rem" }}>
-              <CardTitle
-                style={{
-                  fontSize: "0.875rem",
-                  fontWeight: "500",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  color: "#6B7280",
-                }}
-              >
-                <TrendingUp style={{ width: "1rem", height: "1rem" }} />
-                Today's Earnings
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div
-                style={{
-                  fontSize: "1.875rem",
-                  fontWeight: "700",
-                  color: "#F2C94C",
-                }}
-              >
-                ₱840
-              </div>
-              <p
-                style={{
-                  fontSize: "0.75rem",
-                  color: "#6B7280",
-                  marginTop: "0.25rem",
-                }}
-              >
-                From {deliveries.length} deliveries
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Average Rating */}
-          <Card style={{ transition: "box-shadow 0.2s", cursor: "pointer" }}>
-            <CardHeader style={{ paddingBottom: "0.75rem" }}>
-              <CardTitle
-                style={{
-                  fontSize: "0.875rem",
-                  fontWeight: "500",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  color: "#6B7280",
-                }}
-              >
-                <Star style={{ width: "1rem", height: "1rem" }} />
-                Average Rating
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div
-                style={{
-                  fontSize: "1.875rem",
-                  fontWeight: "700",
-                  color: "#0A1A3F",
-                }}
-              >
-                4.9
-              </div>
-              <p
-                style={{
-                  fontSize: "0.75rem",
-                  color: "#6B7280",
-                  marginTop: "0.25rem",
-                }}
-              >
-                Based on 156 reviews
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Avg Delivery Time */}
-          <Card style={{ transition: "box-shadow 0.2s", cursor: "pointer" }}>
-            <CardHeader style={{ paddingBottom: "0.75rem" }}>
-              <CardTitle
-                style={{
-                  fontSize: "0.875rem",
-                  fontWeight: "500",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  color: "#6B7280",
-                }}
-              >
-                <Clock style={{ width: "1rem", height: "1rem" }} />
-                Avg. Delivery Time
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div
-                style={{
-                  fontSize: "1.875rem",
-                  fontWeight: "700",
-                  color: "#2BA94C",
-                }}
-              >
-                18 min
-              </div>
-              <p
-                style={{
-                  fontSize: "0.75rem",
-                  color: "#6B7280",
-                  marginTop: "0.25rem",
-                }}
-              >
-                Below target of 25min
-              </p>
-            </CardContent>
-          </Card>
+          {[ 
+            { icon: Package, title: "Today's Deliveries", value: stats.totalDeliveries, color: "#0A1A3F", extra: `From delivery history` },
+            { icon: TrendingUp, title: "Today's Earnings", value: `₱${stats.totalEarnings}`, color: "#F2C94C", extra: `From ${stats.totalDeliveries} deliveries` },
+            { icon: Star, title: "Average Rating", value: stats.avgRating.toFixed(1), color: "#0A1A3F", extra: `Based on ${stats.totalReviews} reviews` },
+          ].map((card, idx) => (
+            <Card key={idx}>
+              <CardHeader style={{ paddingBottom: "0.75rem" }}>
+                <CardTitle style={{ fontSize: "0.875rem", fontWeight: "500", display: "flex", alignItems: "center", gap: "0.5rem", color: "#6B7280" }}>
+                  <card.icon style={{ width: "1rem", height: "1rem" }} /> {card.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div style={{ fontSize: "1.875rem", fontWeight: "700", color: card.color }}>
+                  {card.value}
+                </div>
+                <p style={{ fontSize: "0.75rem", color: "#6B7280", marginTop: "0.25rem" }}>{card.extra}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="assigned" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-2 mb-6 gap-4">
             <TabsTrigger value="assigned">
-              Assigned Deliveries ({deliveries.length})
+              Assigned Deliveries ({activeDeliveries.length})
             </TabsTrigger>
             <TabsTrigger value="history">Delivery History</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="assigned">
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
-            >
-              {deliveries.length === 0 ? (
-                <Card>
-                  <CardContent
-                    style={{ padding: "3rem 1rem", textAlign: "center" }}
-                  >
-                    <Package
-                      style={{
-                        height: "3rem",
-                        width: "3rem",
-                        margin: "0 auto 1rem",
-                        color: "#6B7280",
-                      }}
-                    />
-                    <p style={{ color: "#6B7280" }}>
-                      No assigned deliveries at the moment
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                deliveries.map((delivery) => (
-                  <Card
-                    key={delivery.id}
-                    style={{ transition: "box-shadow 0.2s", cursor: "pointer" }}
-                  >
-                    <CardHeader>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                        }}
-                      >
-                        <div>
-                          <CardTitle style={{ fontSize: "1.125rem" }}>
-                            {delivery.orderId}
-                          </CardTitle>
-                          <p
-                            style={{
-                              fontSize: "0.875rem",
-                              color: "#6B7280",
-                              marginTop: "0.25rem",
-                            }}
-                          >
-                            {delivery.id}
-                          </p>
-                        </div>
-                        <Badge style={getStatusColor(delivery.status)}>
-                          {delivery.status}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "1rem",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(2, 1fr)",
-                          gap: "1rem",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "0.75rem",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "flex-start",
-                              gap: "0.5rem",
-                            }}
-                          >
-                            <MapPin
-                              style={{
-                                width: "1.25rem",
-                                height: "1.25rem",
-                                color: "#6B7280",
-                                marginTop: "0.125rem",
-                              }}
-                            />
-                            <div>
-                              <p style={{ fontWeight: 500 }}>
-                                {delivery.customer}
-                              </p>
-                              <p
-                                style={{
-                                  fontSize: "0.875rem",
-                                  color: "#6B7280",
-                                }}
-                              >
-                                {delivery.address}
-                              </p>
-                              <p
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#F2C94C",
-                                  marginTop: "0.25rem",
-                                }}
-                              >
-                                {delivery.distance} away
-                              </p>
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                            }}
-                          >
-                            <Phone
-                              style={{
-                                width: "1.25rem",
-                                height: "1.25rem",
-                                color: "#6B7280",
-                              }}
-                            />
-                            <p style={{ fontSize: "0.875rem" }}>
-                              {delivery.phone}
-                            </p>
-                          </div>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "0.5rem",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <span
-                              style={{ fontSize: "0.875rem", color: "#6B7280" }}
-                            >
-                              Items:
-                            </span>
-                            <span style={{ fontWeight: 500 }}>
-                              {delivery.items} items
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <span
-                              style={{ fontSize: "0.875rem", color: "#6B7280" }}
-                            >
-                              Amount:
-                            </span>
-                            <span
-                              style={{
-                                fontSize: "1.125rem",
-                                fontWeight: 700,
-                                color: "#F2C94C",
-                              }}
-                            >
-                              {delivery.amount}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "0.5rem",
-                          paddingTop: "0.5rem",
-                        }}
-                      >
-                        {delivery.status === "assigned" ? (
-                          <Button
-                            onClick={() => handleAcceptDelivery(delivery.id)}
-                            style={{
-                              flex: 1,
-                              backgroundColor: "#F2C94C",
-                              color: "#0A1A3F",
-                            }}
-                          >
-                            <CheckCircle2
-                              style={{
-                                width: "1rem",
-                                height: "1rem",
-                                marginRight: "0.5rem",
-                              }}
-                            />
-                            Accept Delivery
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={() => handleMarkDelivered(delivery.id)}
-                            style={{
-                              flex: 1,
-                              backgroundColor: "#2BA94C",
-                              color: "#FFFFFF",
-                            }}
-                          >
-                            <CheckCircle2
-                              style={{
-                                width: "1rem",
-                                height: "1rem",
-                                marginRight: "0.5rem",
-                              }}
-                            />
-                            Mark as Delivered
-                          </Button>
-                        )}
-                        <Button variant="outline" style={{ flex: 1 }}>
-                          View Route
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="history">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Deliveries</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "1rem",
-                  }}
+          {/* Active Deliveries */}
+          <TabsContent value="assigned" className="space-y-4">
+            {activeDeliveries.length === 0 ? (
+              <Card>
+                <CardContent
+                  style={{ padding: "3rem 1rem", textAlign: "center" }}
                 >
-                  {mockDeliveryHistory.map((delivery) => (
+                  <Package
+                    style={{
+                      height: "3rem",
+                      width: "3rem",
+                      margin: "0 auto 1rem",
+                      color: "#6B7280",
+                    }}
+                  />
+                  <p style={{ color: "#6B7280" }}>
+                    No active deliveries at the moment
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              activeDeliveries.map((delivery) => (
+                <Card key={delivery.id} style={{ marginBottom: "1rem" }}>
+                  <CardHeader>
                     <div
-                      key={delivery.id}
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "1rem",
-                        border: "1px solid #D1D5DB",
-                        borderRadius: "0.5rem",
-                        transition: "background-color 0.2s",
+                        alignItems: "flex-start",
                       }}
                     >
-                      <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            marginBottom: "0.25rem",
-                          }}
-                        >
-                          <p style={{ fontWeight: 500 }}>{delivery.orderId}</p>
-                          <Badge
-                            style={{
-                              fontSize: "0.75rem",
-                              border: "1px solid #D1D5DB",
-                              padding: "0.125rem 0.5rem",
-                            }}
-                          >
-                            Completed
-                          </Badge>
-                        </div>
+                      <div>
+                        <CardTitle style={{ fontSize: "1.125rem", marginBottom: "0.25rem" }}>
+                          {delivery.orderId}
+                        </CardTitle>
                         <p style={{ fontSize: "0.875rem", color: "#6B7280" }}>
-                          {delivery.customer}
-                        </p>
-                        <p
-                          style={{
-                            fontSize: "0.75rem",
-                            color: "#6B7280",
-                            marginTop: "0.25rem",
-                          }}
-                        >
-                          {delivery.completedAt}
+                          {delivery.id}
                         </p>
                       </div>
-                      <div
+                      <Badge
                         style={{
-                          textAlign: "right",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "0.25rem",
+                          ...getStatusColor(delivery.status),
+                          padding: "0.25rem 1rem",
+                          fontWeight: "500",
                         }}
                       >
-                        <p
-                          style={{
-                            fontSize: "1.125rem",
-                            fontWeight: 700,
-                            color: "#F2C94C",
-                          }}
-                        >
-                          {delivery.amount}
-                        </p>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.25rem",
-                          }}
-                        >
-                          <Star
-                            style={{
-                              width: "0.75rem",
-                              height: "0.75rem",
-                              color: "#F2C94C",
-                            }}
-                          />
-                          <span style={{ fontSize: "0.875rem" }}>
-                            {delivery.rating}
-                          </span>
+                        {delivery.status}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "1.5rem" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
+                          <MapPin style={{ width: "1.25rem", height: "1.25rem", color: "#6B7280", marginTop: "0.125rem" }} />
+                          <div>
+                            <p style={{ fontWeight: 500 }}>{delivery.customer}</p>
+                            <p style={{ fontSize: "0.875rem", color: "#6B7280" }}>{delivery.address}</p>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <Phone style={{ width: "1.25rem", height: "1.25rem", color: "#6B7280" }} />
+                          <p style={{ fontSize: "0.875rem" }}>{delivery.phone}</p>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>Items</span>
+                          <span style={{ fontWeight: 700 }}>{delivery.items}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>Amount</span>
+                          <span style={{ fontWeight: 700 }}>{delivery.amount}</span>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    <div style={{ display: "flex", gap: "0.75rem", paddingTop: "0.5rem" }}>
+                      {delivery.status === "assigned" ? (
+                        <Button style={{ flex: 1, backgroundColor: "#F2C94C", color: "#0A1A3F" }} onClick={() => handleAcceptDelivery(delivery.id)}>
+                          <CheckCircle2 style={{ width: "1rem", height: "1rem", marginRight: "0.5rem" }} />
+                          Accept Delivery
+                        </Button>
+                      ) : (
+                        <Button style={{ flex: 1, backgroundColor: "#2BA94C", color: "#FFF" }} onClick={() => handleMarkDelivered(delivery.id)}>
+                          <CheckCircle2 style={{ width: "1rem", height: "1rem", marginRight: "0.5rem" }} />
+                          Mark as Delivered
+                        </Button>
+                      )}
+                      <Button variant="outline" style={{ flex: 1 }} onClick={() => handleViewInfo(delivery)}>
+                        View Info
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          {/* Delivery History */}
+          <TabsContent value="history" className="space-y-4">
+            {deliveryHistory.length === 0 ? (
+              <Card>
+                <CardContent style={{ padding: "3rem 1rem", textAlign: "center" }}>
+                  <Package style={{ height: "3rem", width: "3rem", margin: "0 auto 1rem", color: "#6B7280" }} />
+                  <p style={{ color: "#6B7280" }}>No delivery history</p>
+                </CardContent>
+              </Card>
+            ) : (
+              deliveryHistory.map((delivery) => {
+                const completedDate = delivery.completedAt
+                  ? new Date(delivery.completedAt).toLocaleString("en-PH")
+                  : "-";
+                return (
+                  <Card key={delivery.id} style={{ marginBottom: "1rem" }}>
+                    <CardContent style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
+                      <div>
+                        <p style={{ fontWeight: 500 }}>{delivery.customer}</p>
+                        <p style={{ fontSize: "0.875rem", color: "#6B7280", marginTop: "0.25rem" }}>
+                          {delivery.orderId} • Completed on {completedDate}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <p style={{ fontWeight: 700, color: "#F2C94C" }}>{delivery.amount}</p>
+                        <p style={{ fontSize: "0.875rem", color: "#6B7280", marginTop: "0.25rem" }}>Rating: {delivery.rating} ⭐</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </TabsContent>
         </Tabs>
       </div>
+
+      <DeliveryModal delivery={selectedDelivery} onClose={closeModal} />
     </div>
   );
 };

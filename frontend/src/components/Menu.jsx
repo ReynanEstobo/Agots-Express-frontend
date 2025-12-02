@@ -13,7 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 
-import { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { DashboardHeader } from "../ui/DashboardHeader";
@@ -101,6 +101,53 @@ const getCategoryIcon = (category) => {
   }
 };
 
+// ---------------------- MenuItemCard ----------------------
+const MenuItemCard = React.memo(({ item, onEdit, onDelete }) => {
+  return (
+    <div className="relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer group h-72">
+      {item.image && (
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-90 transition-transform duration-500 group-hover:scale-105"
+          style={{
+            backgroundImage: `url(http://localhost:5000/uploads/menu/${item.image})`,
+          }}
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+      <div className="absolute bottom-4 left-4 z-10 text-white">
+        <h3 className="text-lg font-semibold drop-shadow-lg">{item.name}</h3>
+        <p className="text-sm font-medium drop-shadow-lg">₱{item.price}</p>
+      </div>
+      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center text-center p-4 space-y-2">
+        <p className="text-sm text-gray-200">{item.description}</p>
+        <div className="flex gap-2 flex-wrap justify-center">
+          {item.category && item.category !== "None" && (
+            <Badge
+              className={`flex items-center gap-1 ${getCategoryColor(
+                item.category
+              )} text-xs px-2 py-1 rounded-full`}
+            >
+              {getCategoryIcon(item.category)} {item.category}
+            </Badge>
+          )}
+          <Badge className="bg-gray-200 text-gray-800 flex items-center gap-1 text-xs px-2 py-1 rounded-full">
+            {item.group}
+          </Badge>
+        </div>
+      </div>
+      <div className="absolute top-2 right-2 flex flex-col gap-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <Button variant="ghost" size="icon" onClick={() => onEdit(item)}>
+          <Edit className="h-4 w-4 text-white" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={() => onDelete(item)}>
+          <Trash2 className="h-4 w-4 text-white" />
+        </Button>
+      </div>
+    </div>
+  );
+});
+// -----------------------------------------------------------
+
 export default function Menu() {
   const [menu, setMenu] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -112,21 +159,17 @@ export default function Menu() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // Fetch menu items
-  const loadMenu = async () => {
+  // ------------------ Stable Callbacks ------------------
+  const loadMenu = useCallback(async () => {
     try {
       const data = await fetchMenuItems();
       setMenu(data || []);
     } catch (err) {
       console.error("Failed to fetch menu items:", err);
     }
-  };
-
-  useEffect(() => {
-    loadMenu();
   }, []);
 
-  const openModal = (item = null) => {
+  const openModal = useCallback((item = null) => {
     if (item) {
       setSelectedItem({ ...item, imageFile: null });
       setImagePreview(
@@ -148,7 +191,18 @@ export default function Menu() {
     setModalOpen(true);
     setErrorMessage("");
     setSuccessMessage("");
-  };
+  }, []);
+
+  const confirmDelete = useCallback((item) => {
+    setItemToDelete(item);
+    setDeleteConfirmOpen(true);
+  }, []);
+
+  // ------------------------------------------------------
+
+  useEffect(() => {
+    loadMenu();
+  }, [loadMenu]);
 
   const closeModal = () => {
     setModalOpen(false);
@@ -202,8 +256,8 @@ export default function Menu() {
         );
       } else {
         const newItem = await createMenuItem(formData);
-        setMenu([
-          ...menu,
+        setMenu((prev) => [
+          ...prev,
           { ...newItem, category: newItem.category || "None" },
         ]);
       }
@@ -213,11 +267,6 @@ export default function Menu() {
     } catch (err) {
       setErrorMessage("Failed to save menu item: " + err.message);
     }
-  };
-
-  const confirmDelete = (item) => {
-    setItemToDelete(item);
-    setDeleteConfirmOpen(true);
   };
 
   const handleDelete = async () => {
@@ -231,49 +280,7 @@ export default function Menu() {
     }
   };
 
-  const MenuItemCard = ({ item }) => (
-    <div className="relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer group h-72">
-      {item.image && (
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-90 transition-transform duration-500 group-hover:scale-105"
-          style={{
-            backgroundImage: `url(http://localhost:5000/uploads/menu/${item.image})`,
-          }}
-        />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-      <div className="absolute bottom-4 left-4 z-10 text-white">
-        <h3 className="text-lg font-semibold drop-shadow-lg">{item.name}</h3>
-        <p className="text-sm font-medium drop-shadow-lg">₱{item.price}</p>
-      </div>
-      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center text-center p-4 space-y-2">
-        <p className="text-sm text-gray-200">{item.description}</p>
-        <div className="flex gap-2 flex-wrap justify-center">
-          {item.category && item.category !== "None" && (
-            <Badge
-              className={`flex items-center gap-1 ${getCategoryColor(
-                item.category
-              )} text-xs px-2 py-1 rounded-full`}
-            >
-              {getCategoryIcon(item.category)} {item.category}
-            </Badge>
-          )}
-          <Badge className="bg-gray-200 text-gray-800 flex items-center gap-1 text-xs px-2 py-1 rounded-full">
-            {item.group}
-          </Badge>
-        </div>
-      </div>
-      <div className="absolute top-2 right-2 flex flex-col gap-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <Button variant="ghost" size="icon" onClick={() => openModal(item)}>
-          <Edit className="h-4 w-4 text-white" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={() => confirmDelete(item)}>
-          <Trash2 className="h-4 w-4 text-white" />
-        </Button>
-      </div>
-    </div>
-  );
-
+  // -------------------- Render --------------------
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
       <DashboardSidebar />
@@ -349,7 +356,12 @@ export default function Menu() {
                   {menu
                     .filter((item) => item.group === grp)
                     .map((item) => (
-                      <MenuItemCard key={item.id} item={item} />
+                      <MenuItemCard
+                        key={item.id}
+                        item={item}
+                        onEdit={openModal}
+                        onDelete={confirmDelete}
+                      />
                     ))}
                 </div>
               </TabsContent>
