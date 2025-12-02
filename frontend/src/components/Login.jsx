@@ -31,9 +31,10 @@ const Login = () => {
         return;
       }
 
-      localStorage.setItem("token", res.token || "");
-      localStorage.setItem("role", res.role);
-      localStorage.setItem("user_id", res.id);
+      // Use sessionStorage so each tab can keep its own session
+      sessionStorage.setItem("token", res.token || "");
+      sessionStorage.setItem("role", res.role);
+      sessionStorage.setItem("user_id", res.id);
 
       alert(`Login Successful! You are logged in as ${res.role}`);
 
