@@ -82,8 +82,14 @@ export default function OrderMenu() {
     }
   };
 
+  // Real-time menu loading every 5 seconds
   useEffect(() => {
-    loadMenu();
+    loadMenu(); // initial load
+    const interval = setInterval(() => {
+      loadMenu();
+    }, 5000); // refresh every 5 seconds
+
+    return () => clearInterval(interval); // cleanup
   }, []);
 
   const filteredItems = (items) =>
