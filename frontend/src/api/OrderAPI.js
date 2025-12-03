@@ -1,43 +1,52 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/orders";
+const BASE_URL = "http://localhost:5000/api"; // adjust to your backend URL
 
-// Generic API request handler
-const apiRequest = async (method, url, data = null, headers = {}) => {
+// Place a new order
+export const placeOrder = async ({
+  user_id,
+  cartItems,
+  total,
+  deliveryAddress,
+  specialInstructions,
+}) => {
   try {
-    const config = { method, url, data, headers };
-    const response = await axios(config);
-    return response.data;
+    const res = await axios.post(`${BASE_URL}/orders`, {
+      user_id,
+      items: cartItems.map((item) => ({
+        menu_id: item.menu_id,
+        quantity: item.quantity,
+        special_instructions: item.specialInstructions || "",
+      })),
+      total_amount: total,
+      delivery_address: deliveryAddress,
+      special_instructions: specialInstructions || "",
+    });
+    return res.data;
   } catch (err) {
-    console.error(
-      `API Error (${method} ${url}):`,
-      err.response ? err.response.data : err.message
-    );
-    throw new Error(
-      err.response ? err.response.data.message : "An error occurred"
-    );
+    console.error("placeOrder error:", err);
+    throw err;
   }
 };
 
-/**
- * Place a new order
- * @param {Object} orderData - {
- *   customer_id: number,
- *   items: [{ menu_id, quantity, price }],
- *   paymentMethod: 'cash' | 'card',
- *   deliveryAddress: {
- *     first_name, last_name, phone, email, address, delivery_instructions, latitude, longitude
- *   }
- * }
- */
-export const placeOrder = async (orderData) => {
-  if (
-    !orderData.customer_id ||
-    !orderData.items?.length ||
-    !orderData.deliveryAddress
-  ) {
-    throw new Error("Customer, items, and delivery address are required");
+// Fetch orders for a user
+export const fetchUserOrders = async (user_id) => {
+  try {
+    const res = await axios.get(`${BASE_URL}/orders/user/${user_id}`);
+    return res.data;
+  } catch (err) {
+    console.error("fetchUserOrders error:", err);
+    throw err;
   }
+};
 
-  return apiRequest("POST", API_URL, orderData, { "Content-Type": "application/json" });
+// Fetch a specific order by ID
+export const fetchOrderById = async (order_id) => {
+  try {
+    const res = await axios.get(`${BASE_URL}/orders/${order_id}`);
+    return res.data;
+  } catch (err) {
+    console.error("fetchOrderById error:", err);
+    throw err;
+  }
 };

@@ -1,23 +1,22 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import {
+  addCartItem as apiAddCartItem,
+  clearCartItems as apiClearCart,
+  removeCartItem as apiRemoveCartItem,
+  updateCartItem as apiUpdateCartItem,
+  fetchCartItems,
+} from "../api/CartAPI";
 import { useToast } from "../hooks/use-toast";
 
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
   const { addToast } = useToast();
+  const userId = sessionStorage.getItem("user_id");
 
-  const [items, setItems] = useState(() => {
-    const saved = localStorage.getItem("cart");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // Animation states
+  const [items, setItems] = useState([]);
   const [animateCount, setAnimateCount] = useState(false);
   const [animateIcon, setAnimateIcon] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(items));
-  }, [items]);
 
   const triggerAnimations = () => {
     setAnimateCount(true);
@@ -26,53 +25,113 @@ export function CartProvider({ children }) {
     setTimeout(() => setAnimateIcon(false), 300);
   };
 
-  const addToCart = (item, quantity = 1) => {
-    setItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
+  // ------------------- LOAD CART FROM BACKEND -------------------
+  const loadCart = async () => {
+    if (!userId) return;
+    try {
+      const data = await fetchCartItems(userId);
+      setItems(
+        data.map((i) => ({
+          ...i,
+          specialInstructions: i.special_instructions || "",
+        }))
+      );
+    } catch (err) {
+      console.error("Failed to load cart:", err);
+      addToast({ description: "Failed to load cart." });
+    }
+  };
+
+  useEffect(() => {
+    loadCart();
+  }, [userId]);
+
+  // ------------------- ADD TO CART -------------------
+  const addToCart = async (item, quantity = 1) => {
+    if (!userId) return;
+    try {
+      const existing = items.find(
+        (i) => i.menu_id === item.id || i.menu_id === item.menu_id
+      );
+
       if (existing) {
+        await apiUpdateCartItem({
+          user_id: userId,
+          menu_id: existing.menu_id,
+          quantity: existing.quantity + quantity,
+          specialInstructions: existing.specialInstructions || "",
+        });
         addToast({
           title: "Updated cart",
           description: `${item.name} quantity updated`,
-          playSound: true, // sound only here
+          playSound: true,
         });
-        triggerAnimations();
-        return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + quantity } : i
-        );
+      } else {
+        await apiAddCartItem({
+          user_id: userId,
+          menu_id: item.id,
+          quantity,
+        });
+        addToast({
+          title: "Added to cart",
+          description: `${item.name} added to your cart`,
+          playSound: true,
+        });
       }
 
-      addToast({
-        title: "Added to cart",
-        description: `${item.name} added to your cart`,
-        playSound: true, // sound only here
-      });
       triggerAnimations();
-      return [...prev, { ...item, quantity }];
-    });
-  };
-
-  const removeFromCart = (id) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-    addToast({
-      title: "Removed from cart",
-      description: "Item removed from your cart",
-      playSound: false, // no sound for removal
-    });
-  };
-
-  const updateQuantity = (id, quantity) => {
-    if (quantity <= 0) {
-      removeFromCart(id);
-      return;
+      loadCart(); // refresh
+    } catch (err) {
+      console.error(err);
+      addToast({ description: "Failed to add/update cart." });
     }
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity } : item))
-    );
   };
 
-  const clearCart = () => {
-    setItems([]);
-    localStorage.removeItem("cart");
+  // ------------------- UPDATE QUANTITY / SPECIAL INSTRUCTIONS -------------------
+  const updateQuantity = async (menu_id, quantity, specialInstructions) => {
+    if (!userId) return;
+    try {
+      await apiUpdateCartItem({
+        user_id: userId,
+        menu_id,
+        quantity,
+        specialInstructions,
+      });
+      loadCart();
+    } catch (err) {
+      console.error(err);
+      addToast({ description: "Failed to update cart item." });
+    }
+  };
+
+  // ------------------- REMOVE ITEM -------------------
+  const removeFromCart = async (menu_id) => {
+    if (!userId) return;
+    try {
+      await apiRemoveCartItem(userId, menu_id);
+      loadCart();
+      addToast({
+        title: "Removed from cart",
+        description: "Item removed from your cart",
+        playSound: false,
+      });
+    } catch (err) {
+      console.error(err);
+      addToast({ description: "Failed to remove item." });
+    }
+  };
+
+  // ------------------- CLEAR CART -------------------
+  const clearCart = async () => {
+    if (!userId) return;
+    try {
+      await apiClearCart(userId);
+      setItems([]);
+      addToast({ title: "Cart cleared", description: "All items removed" });
+    } catch (err) {
+      console.error(err);
+      addToast({ description: "Failed to clear cart." });
+    }
   };
 
   const total = items.reduce(
@@ -93,6 +152,7 @@ export function CartProvider({ children }) {
         itemCount,
         animateCount,
         animateIcon,
+        loadCart,
       }}
     >
       {children}

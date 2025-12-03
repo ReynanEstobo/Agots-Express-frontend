@@ -10,7 +10,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { fetchMenuItems } from "../api/MenuAPI";
 import CartSheet from "../components/CartSheet";
 import { useCart } from "../contexts/CartContext";
@@ -67,29 +67,36 @@ const getCategoryIcon = (category) => {
 };
 
 export default function OrderMenu() {
+  const navigate = useNavigate();
+  const { addToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("Main Course");
   const [menuItems, setMenuItems] = useState([]);
-  const { addToCart } = useCart();
-  const { addToast } = useToast();
+  const { addToCart, items: cartItems } = useCart();
 
-  const loadMenu = async () => {
-    try {
-      const data = await fetchMenuItems();
-      setMenuItems(data || []);
-    } catch (err) {
-      console.error("Failed to fetch menu items:", err);
-    }
-  };
+  const userId = sessionStorage.getItem("user_id");
 
-  // Real-time menu loading every 5 seconds
+  // ---------------- LOGIN PROTECTION ----------------
   useEffect(() => {
-    loadMenu(); // initial load
-    const interval = setInterval(() => {
-      loadMenu();
-    }, 5000); // refresh every 5 seconds
+    const token = sessionStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
+    if (!token || role !== "customer") {
+      alert("You must be logged in as a customer to view this page.");
+      navigate("/login");
+    }
+  }, [navigate]);
 
-    return () => clearInterval(interval); // cleanup
+  // ---------------- LOAD MENU ----------------
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        const data = await fetchMenuItems();
+        setMenuItems(data || []);
+      } catch (err) {
+        console.error("Failed to fetch menu:", err);
+      }
+    };
+    fetchMenu();
   }, []);
 
   const filteredItems = (items) =>
@@ -100,7 +107,13 @@ export default function OrderMenu() {
     );
 
   const handleAddToCart = (item) => {
-    addToCart(item);
+    if (!userId) {
+      addToast({ description: "You must log in to add items to your cart." });
+      navigate("/login");
+      return;
+    }
+
+    addToCart(item, 1, ""); // Using context
     addToast({ description: `${item.name} added to cart` });
   };
 
@@ -115,7 +128,6 @@ export default function OrderMenu() {
         />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-
       <div className="absolute bottom-4 left-4 z-20 flex flex-col space-y-1">
         <h3 className="text-lg font-extrabold text-white drop-shadow-lg">
           {item.name}
@@ -167,18 +179,7 @@ export default function OrderMenu() {
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#F2C94C] text-[#0A1A3F]">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="48"
-                height="48"
-                viewBox="0 0 64 64"
-                className="w-6 h-6 cursor-pointer"
-              >
-                <path
-                  fill="#000000"
-                  d="M30.456 20.765c0 2.024-1.844 4.19-4.235 4.19v34.164c0 4.851-6.61 4.851-6.61 0V24.955c-2.328 0-4.355-1.793-4.355-4.479V1.674c0-1.636 2.364-1.698 2.364.064v13.898h1.98V1.61c0-1.503 2.278-1.599 2.278.064v13.963h2.046V1.63c0-1.572 2.21-1.635 2.21.062v13.945h2.013V1.63c0-1.556 2.309-1.617 2.309.062v19.074zm17.633-14.72v53.059c0 4.743-6.624 4.673-6.624 0V38.051h-3.526V6.045c0-7.451 10.151-7.451 10.151 0z"
-                />
-              </svg>
+              <Home className="h-6 w-6" />
             </div>
             <div>
               <h1 className="text-xl font-bold">Order Online</h1>
