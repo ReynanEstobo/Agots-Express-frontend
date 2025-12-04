@@ -4,23 +4,17 @@ const BASE_URL = "http://localhost:5000/api"; // adjust to your backend URL
 
 // Place a new order
 export const placeOrder = async ({
-  user_id,
-  cartItems,
-  total,
+  customer_id,
+  items,
+  paymentMethod,
   deliveryAddress,
-  specialInstructions,
 }) => {
   try {
-    const res = await axios.post(`${BASE_URL}/orders`, {
-      user_id,
-      items: cartItems.map((item) => ({
-        menu_id: item.menu_id,
-        quantity: item.quantity,
-        special_instructions: item.specialInstructions || "",
-      })),
-      total_amount: total,
-      delivery_address: deliveryAddress,
-      special_instructions: specialInstructions || "",
+    const res = await axios.post(`${BASE_URL}/orders/place`, {
+      user_id: customer_id,
+      items, // directly send items from frontend
+      paymentMethod,
+      deliveryAddress,
     });
     return res.data;
   } catch (err) {

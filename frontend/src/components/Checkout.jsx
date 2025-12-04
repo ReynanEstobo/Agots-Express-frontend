@@ -1,6 +1,6 @@
 import { CreditCard, UtensilsCrossed, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "../ui/Button";
@@ -132,13 +132,31 @@ const Checkout = () => {
       return;
     }
 
+    if (!items || items.length === 0) {
+      addToast({
+        title: "Cart Empty",
+        description: "Add items to your cart before placing an order.",
+      });
+      return;
+    }
+
+    const userId = sessionStorage.getItem("user_id");
+    if (!userId) {
+      addToast({
+        title: "Not Logged In",
+        description: "Please log in to place an order.",
+      });
+      return;
+    }
+
     try {
       const orderData = {
-        customer_id: 1, // Replace with actual logged-in customer ID
+        customer_id: userId,
         items: items.map((item) => ({
-          menu_id: item.id,
+          menu_id: item.menu_id || item.id,
           quantity: item.quantity,
           price: item.price,
+          special_instructions: item.specialInstructions || "",
         })),
         paymentMethod,
         deliveryAddress: {
@@ -159,33 +177,13 @@ const Checkout = () => {
         title: "Order Placed!",
         description: `Your order #${res.order_id} has been confirmed.`,
       });
+
       clearCart();
       navigate("/customer-dashboard");
     } catch (err) {
       addToast({ title: "Failed to place order", description: err.message });
     }
   };
-
-  if (items.length === 0) {
-    return (
-      <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center">
-        <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center">
-            <UtensilsCrossed className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Your cart is empty</h2>
-            <p className="text-gray-400 mb-6">
-              Add some items to your cart before checking out
-            </p>
-            <Link to="/order">
-              <Button className="bg-[hsl(var(--accent))] text-[hsl(var(--primary))] py-2 px-4">
-                Browse Menu
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#F5F5F5]">

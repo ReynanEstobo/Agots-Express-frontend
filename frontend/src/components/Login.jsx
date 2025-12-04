@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginAllRoles, registerCustomer } from "../api/LoginAPI.js";
 import LoginForm from "./LoginForm";
@@ -20,31 +20,43 @@ const Login = () => {
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
 
-  // ---------------- LOGIN HANDLER (UNCHANGED) ----------------
+  const signupRef = useRef(null);
+  const [signupHeight, setSignupHeight] = useState(0);
+
+  // Calculate dynamic signup height for smooth transition
+  useEffect(() => {
+    if (signupRef.current) {
+      setSignupHeight(signupRef.current.scrollHeight);
+    }
+  }, [
+    signupRef,
+    signupName,
+    signupEmail,
+    signupPhone,
+    signupUsername,
+    signupPassword,
+    signupConfirmPassword,
+  ]);
+
+  // ---------------- LOGIN HANDLER ----------------
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const res = await loginAllRoles(loginUsername, loginPassword);
+      if (!res || !res.role) return alert("Invalid username or password.");
 
-      if (!res || !res.role) {
-        alert("Invalid username or password.");
-        return;
-      }
-
-      // Use sessionStorage so each tab can keep its own session
       sessionStorage.setItem("token", res.token || "");
       sessionStorage.setItem("role", res.role);
       sessionStorage.setItem("user_id", res.id);
 
       alert(`Login Successful! You are logged in as ${res.role}`);
-
       if (res.role === "admin") navigate("/admin-dashboard");
       else if (res.role === "customer") navigate("/customer-dashboard");
       else if (res.role === "staff") navigate("/staff-dashboard");
       else if (res.role === "rider") navigate("/rider-dashboard");
       else navigate("/");
     } catch (err) {
-      console.error("Login error:", err);
+      console.error(err);
       alert(err.message || "Failed to connect to server.");
     }
   };
@@ -52,14 +64,11 @@ const Login = () => {
   // ---------------- SIGNUP HANDLER ----------------
   const handleSignup = async (e) => {
     e.preventDefault();
-
     if (signupPassword !== signupConfirmPassword) {
-      alert("Passwords do not match!");
-      return;
+      return alert("Passwords do not match!");
     }
-
     try {
-      const data = await registerCustomer({
+      await registerCustomer({
         username: signupUsername,
         password: signupPassword,
         first_name: signupName,
@@ -69,16 +78,12 @@ const Login = () => {
       });
 
       alert("Signup successful! You can now log in.");
-
-      // Clear signup form
       setSignupName("");
       setSignupEmail("");
       setSignupPhone("");
       setSignupUsername("");
       setSignupPassword("");
       setSignupConfirmPassword("");
-
-      // Switch to login tab
       setActiveTab("login");
     } catch (err) {
       alert(err.message);
@@ -87,7 +92,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#323C4D] to-[#0F2247] px-4 sm:px-6">
-      <div className="bg-white rounded-xl shadow-2xl p-4 sm:p-6 lg:p-8 w-full max-w-sm sm:max-w-md lg:max-w-lg">
+      <div className="bg-white rounded-xl shadow-2xl p-4 sm:p-6 lg:p-8 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg transition-all duration-500">
         {/* Logo */}
         <div className="flex justify-center mb-4 sm:mb-6">
           <div className="bg-yellow-400 rounded-full p-3 sm:p-4">
@@ -115,65 +120,64 @@ const Login = () => {
 
         {/* Tabs */}
         <div className="flex justify-center mb-4 sm:mb-6 border-b border-gray-200">
-          <button
-            onClick={() => setActiveTab("login")}
-            className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base ${
-              activeTab === "login"
-                ? "border-b-2 border-yellow-400 text-gray-900"
-                : "text-gray-400"
-            }`}
-          >
-            Login
-          </button>
-
-          <button
-            onClick={() => setActiveTab("signup")}
-            className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base ${
-              activeTab === "signup"
-                ? "border-b-2 border-yellow-400 text-gray-900"
-                : "text-gray-400"
-            }`}
-          >
-            Sign Up
-          </button>
+          {["login", "signup"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base transition-all duration-300 ${
+                activeTab === tab
+                  ? "border-b-2 border-yellow-400 text-gray-900"
+                  : "text-gray-400"
+              }`}
+            >
+              {tab === "login" ? "Login" : "Sign Up"}
+            </button>
+          ))}
         </div>
 
-        {/* Forms */}
-        <div className="overflow-hidden">
+        {/* Forms with smooth tab switching */}
+        <div className="relative">
+          {/* Login Form */}
           <div
-            className={`flex transition-transform duration-500 ${
-              activeTab === "login" ? "translate-x-0" : "-translate-x-full"
+            className={`transition-all duration-500 ease-in-out overflow-hidden ${
+              activeTab === "login"
+                ? "opacity-100 translate-x-0 max-h-[1000px] relative"
+                : "opacity-0 -translate-x-10 max-h-0 absolute top-0 w-full"
             }`}
           >
-            {/* Login Form */}
-            <div className="w-full flex-shrink-0">
-              <LoginForm
-                username={loginUsername}
-                setUsername={setLoginUsername}
-                password={loginPassword}
-                setPassword={setLoginPassword}
-                handleLogin={handleLogin}
-              />
-            </div>
+            <LoginForm
+              username={loginUsername}
+              setUsername={setLoginUsername}
+              password={loginPassword}
+              setPassword={setLoginPassword}
+              handleLogin={handleLogin}
+            />
+          </div>
 
-            {/* Signup Form */}
-            <div className="w-full flex-shrink-0">
-              <SignupForm
-                signupName={signupName}
-                setSignupName={setSignupName}
-                signupEmail={signupEmail}
-                setSignupEmail={setSignupEmail}
-                signupPhone={signupPhone}
-                setSignupPhone={setSignupPhone}
-                signupUsername={signupUsername}
-                setSignupUsername={setSignupUsername}
-                signupPassword={signupPassword}
-                setSignupPassword={setSignupPassword}
-                signupConfirmPassword={signupConfirmPassword}
-                setSignupConfirmPassword={setSignupConfirmPassword}
-                handleSignup={handleSignup} // pass handler
-              />
-            </div>
+          {/* Signup Form */}
+          <div
+            ref={signupRef}
+            className={`transition-all duration-500 ease-in-out overflow-hidden ${
+              activeTab === "signup"
+                ? `opacity-100 translate-x-0 max-h-[${signupHeight}px] relative`
+                : "opacity-0 translate-x-10 max-h-0 absolute top-0 w-full"
+            }`}
+          >
+            <SignupForm
+              signupName={signupName}
+              setSignupName={setSignupName}
+              signupEmail={signupEmail}
+              setSignupEmail={setSignupEmail}
+              signupPhone={signupPhone}
+              setSignupPhone={setSignupPhone}
+              signupUsername={signupUsername}
+              setSignupUsername={setSignupUsername}
+              signupPassword={signupPassword}
+              setSignupPassword={setSignupPassword}
+              signupConfirmPassword={signupConfirmPassword}
+              setSignupConfirmPassword={setSignupConfirmPassword}
+              handleSignup={handleSignup}
+            />
           </div>
         </div>
 

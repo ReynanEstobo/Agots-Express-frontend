@@ -128,6 +128,7 @@ const RiderDashboard = () => {
     totalReviews: 0,
   });
   const [selectedDelivery, setSelectedDelivery] = useState(null);
+  const [activeTab, setActiveTab] = useState("assigned");
 
   // -------------------- FETCH RIDER INFO --------------------
   useEffect(() => {
@@ -290,33 +291,13 @@ const RiderDashboard = () => {
 
   // -------------------- RENDER --------------------
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#F5F5F5" }}>
+    <div className="min-h-screen bg-[#F5F5F5] pb-16 md:pb-16">
       {/* HEADER */}
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          backgroundColor: "#0A1A3F",
-          color: "#FFF",
-          borderBottom: "1px solid rgba(255,255,255,0.1)",
-          zIndex: 40,
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "1280px",
-            margin: "0 auto",
-            padding: "1rem 1.5rem",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+      <header className="sticky top-0 bg-[#0A1A3F] text-white border-b border-white/10 z-40">
+        <div className="max-w-1280 mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
           <div>
-            <h1 style={{ fontSize: "1.5rem", fontWeight: "700" }}>
-              Rider Dashboard
-            </h1>
-            <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.7)" }}>
+            <h1 className="text-xl sm:text-2xl font-bold">Rider Dashboard</h1>
+            <p className="text-sm sm:text-base text-white/70">
               {rider.name} • Rider ID: {rider.riderId}
             </p>
           </div>
@@ -324,21 +305,10 @@ const RiderDashboard = () => {
           {/* ---------------- LOGOUT BUTTON ---------------- */}
           <button
             onClick={() => {
-              sessionStorage.clear(); // remove session data
-              window.location.href = "/"; // redirect to login or landing page
+              sessionStorage.clear();
+              window.location.href = "/";
             }}
-            style={{
-              backgroundColor: "#F2C94C",
-              color: "#0A1A3F",
-              fontWeight: 600,
-              padding: "0.5rem 1.25rem",
-              borderRadius: "0.75rem",
-              border: "none",
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => (e.target.style.backgroundColor = "#E0B941")}
-            onMouseLeave={(e) => (e.target.style.backgroundColor = "#F2C94C")}
+            className="bg-[#F2C94C] text-[#0A1A3F] font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-none cursor-pointer transition-all hover:bg-[#E0B941]"
           >
             Log Out
           </button>
@@ -346,18 +316,9 @@ const RiderDashboard = () => {
       </header>
 
       {/* CONTENT */}
-      <div
-        style={{ maxWidth: "1280px", margin: "0 auto", padding: "2rem 1.5rem" }}
-      >
+      <div className="max-w-1280 mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* STATS */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(250px,1fr))",
-            gap: "1.5rem",
-            marginBottom: "2rem",
-          }}
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {[
             {
               icon: Package,
@@ -382,38 +343,20 @@ const RiderDashboard = () => {
             },
           ].map((card, idx) => (
             <Card key={idx}>
-              <CardHeader style={{ paddingBottom: "0.75rem" }}>
-                <CardTitle
-                  style={{
-                    fontSize: "0.875rem",
-                    fontWeight: "500",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    color: "#6B7280",
-                  }}
-                >
-                  <card.icon style={{ width: "1rem", height: "1rem" }} />{" "}
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="text-sm sm:text-base font-medium flex items-center gap-2 text-gray-500">
+                  <card.icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   {card.title}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div
-                  style={{
-                    fontSize: "1.875rem",
-                    fontWeight: "700",
-                    color: card.color,
-                  }}
+                  className="text-2xl sm:text-3xl font-bold"
+                  style={{ color: card.color }}
                 >
                   {card.value}
                 </div>
-                <p
-                  style={{
-                    fontSize: "0.75rem",
-                    color: "#6B7280",
-                    marginTop: "0.25rem",
-                  }}
-                >
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">
                   {card.extra}
                 </p>
               </CardContent>
@@ -422,8 +365,9 @@ const RiderDashboard = () => {
         </div>
 
         {/* TABS */}
-        <Tabs defaultValue="assigned" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6 gap-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {/* Desktop Tabs */}
+          <TabsList className="grid w-full grid-cols-2 mb-6 gap-4 hidden sm:grid">
             <TabsTrigger value="assigned">
               Active Deliveries ({activeDeliveries.length})
             </TabsTrigger>
@@ -434,18 +378,9 @@ const RiderDashboard = () => {
           <TabsContent value="assigned" className="space-y-4">
             {activeDeliveries.length === 0 ? (
               <Card>
-                <CardContent
-                  style={{ padding: "3rem 1rem", textAlign: "center" }}
-                >
-                  <Package
-                    style={{
-                      height: "3rem",
-                      width: "3rem",
-                      margin: "0 auto 1rem",
-                      color: "#6B7280",
-                    }}
-                  />
-                  <p style={{ color: "#6B7280" }}>
+                <CardContent className="p-8 sm:p-12 text-center">
+                  <Package className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-500 text-sm sm:text-base">
                     No active deliveries at the moment
                   </p>
                 </CardContent>
@@ -454,25 +389,12 @@ const RiderDashboard = () => {
               activeDeliveries.map((delivery) => (
                 <Card key={delivery.id}>
                   <CardHeader>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                      }}
-                    >
+                    <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle
-                          style={{
-                            fontSize: "1.125rem",
-                            marginBottom: "0.25rem",
-                          }}
-                        >
+                        <CardTitle className="text-lg sm:text-xl mb-1">
                           {delivery.orderId}
                         </CardTitle>
-                        <p style={{ fontSize: "0.875rem", color: "#6B7280" }}>
-                          {delivery.id}
-                        </p>
+                        <p className="text-sm text-gray-500">{delivery.id}</p>
                       </div>
                       <Badge
                         style={{
@@ -485,158 +407,59 @@ const RiderDashboard = () => {
                       </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "1.5rem",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2,1fr)",
-                        gap: "1.5rem",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "1rem",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "flex-start",
-                            gap: "0.5rem",
-                          }}
-                        >
-                          <MapPin
-                            style={{
-                              width: "1.25rem",
-                              height: "1.25rem",
-                              color: "#6B7280",
-                              marginTop: "0.125rem",
-                            }}
-                          />
+                  <CardContent className="flex flex-col gap-4 sm:gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="flex flex-col gap-3 sm:gap-4">
+                        <div className="flex items-start gap-3">
+                          <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 mt-0.5" />
                           <div>
-                            <p style={{ fontWeight: 500 }}>
+                            <p className="font-medium">
                               {delivery.customer_first_name}{" "}
                               {delivery.customer_last_name}
                             </p>
-                            <p
-                              style={{ fontSize: "0.875rem", color: "#6B7280" }}
-                            >
+                            <p className="text-sm text-gray-500">
                               {delivery.customer_address}
                             </p>
                           </div>
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                          }}
-                        >
-                          <Phone
-                            style={{
-                              width: "1.25rem",
-                              height: "1.25rem",
-                              color: "#6B7280",
-                            }}
-                          />
-                          <p style={{ fontSize: "0.875rem" }}>
+                        <div className="flex items-center gap-3">
+                          <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" />
+                          <p className="text-sm sm:text-base">
                             {delivery.customer_phone}
                           </p>
                         </div>
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "0.75rem",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span
-                            style={{ fontSize: "0.875rem", fontWeight: 500 }}
-                          >
-                            Items
-                          </span>
-                          <span style={{ fontWeight: 700 }}>
-                            {delivery.items}
-                          </span>
+                      <div className="flex flex-col gap-2 sm:gap-3">
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium">Items</span>
+                          <span className="font-bold">{delivery.items}</span>
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span
-                            style={{ fontSize: "0.875rem", fontWeight: 500 }}
-                          >
-                            Amount
-                          </span>
-                          <span
-                            style={{ fontWeight: 700 }}
-                          >{`₱${delivery.total_amount}`}</span>
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium">Amount</span>
+                          <span className="font-bold">{`₱${delivery.total_amount}`}</span>
                         </div>
                       </div>
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "0.75rem",
-                        paddingTop: "0.5rem",
-                      }}
-                    >
+                    <div className="flex gap-2 sm:gap-3 pt-2">
                       {delivery.status === "assigned" ? (
                         <Button
-                          style={{
-                            flex: 1,
-                            backgroundColor: "#F2C94C",
-                            color: "#0A1A3F",
-                          }}
+                          className="flex-1 bg-[#F2C94C] text-[#0A1A3F]"
                           onClick={() => handleAcceptDelivery(delivery.id)}
                         >
-                          <CheckCircle2
-                            style={{
-                              width: "1rem",
-                              height: "1rem",
-                              marginRight: "0.5rem",
-                            }}
-                          />
+                          <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                           Accept Delivery
                         </Button>
                       ) : (
                         <Button
-                          style={{
-                            flex: 1,
-                            backgroundColor: "#2BA94C",
-                            color: "#FFF",
-                          }}
+                          className="flex-1 bg-[#2BA94C] text-white"
                           onClick={() => handleMarkDelivered(delivery.id)}
                         >
-                          <CheckCircle2
-                            style={{
-                              width: "1rem",
-                              height: "1rem",
-                              marginRight: "0.5rem",
-                            }}
-                          />
+                          <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                           Mark Delivered
                         </Button>
                       )}
                       <Button
-                        style={{ flex: 1 }}
+                        className="flex-1"
                         onClick={() => handleViewInfo(delivery)}
                       >
                         View Info
@@ -648,22 +471,15 @@ const RiderDashboard = () => {
             )}
           </TabsContent>
 
-          {/* DELIVERY HISTORY - Updated design */}
+          {/* DELIVERY HISTORY */}
           <TabsContent value="history" className="space-y-4">
             {deliveryHistory.length === 0 ? (
               <Card>
-                <CardContent
-                  style={{ padding: "3rem 1rem", textAlign: "center" }}
-                >
-                  <Package
-                    style={{
-                      height: "3rem",
-                      width: "3rem",
-                      margin: "0 auto 1rem",
-                      color: "#6B7280",
-                    }}
-                  />
-                  <p style={{ color: "#6B7280" }}>No delivery history</p>
+                <CardContent className="p-8 sm:p-12 text-center">
+                  <Package className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-500 text-sm sm:text-base">
+                    No delivery history
+                  </p>
                 </CardContent>
               </Card>
             ) : (
@@ -673,53 +489,25 @@ const RiderDashboard = () => {
                   : "-";
                 return (
                   <Card key={delivery.id}>
-                    <CardContent
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "1rem",
-                      }}
-                    >
+                    <CardContent className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 p-4 sm:p-6">
                       <div>
-                        <p style={{ fontWeight: 500, fontSize: "1rem" }}>
+                        <p className="font-medium text-base sm:text-lg">
                           {delivery.customer}
                         </p>
-                        <p
-                          style={{
-                            fontSize: "0.875rem",
-                            color: "#6B7280",
-                            marginTop: "0.25rem",
-                          }}
-                        >
+                        <p className="text-sm text-gray-500 mt-1">
                           {delivery.orderId} • Completed on {completedDate}
                         </p>
                       </div>
-                      <div style={{ textAlign: "right" }}>
-                        <p
-                          style={{
-                            fontWeight: 700,
-                            color: "#0A1A3F",
-                            fontSize: "1rem",
-                          }}
-                        >
+                      <div className="text-right">
+                        <p className="font-bold text-lg text-[#0A1A3F]">
                           {delivery.amount}
                         </p>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.25rem",
-                            justifyContent: "flex-end",
-                            marginTop: "0.5rem",
-                          }}
-                        >
+                        <div className="flex items-center gap-1 justify-end mt-2">
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
+                              className="w-4 h-4 sm:w-5 sm:h-5"
                               style={{
-                                width: "1.5rem",
-                                height: "1.5rem",
                                 color:
                                   i < delivery.rating ? "#22C55E" : "#4B5563",
                                 fill: i < delivery.rating ? "#22C55E" : "none",
@@ -735,6 +523,39 @@ const RiderDashboard = () => {
             )}
           </TabsContent>
         </Tabs>
+      </div>
+
+      {/* Mobile Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 sm:hidden md:hidden z-50">
+        <div className="flex justify-around py-2">
+          <button
+            onClick={() => setActiveTab("assigned")}
+            className={`flex-1 py-3 px-4 text-center ${
+              activeTab === "assigned"
+                ? "text-[#0A1A3F] font-medium"
+                : "text-gray-500"
+            }`}
+          >
+            <div className="flex flex-col items-center">
+              <Package className="w-5 h-5 mb-1" />
+              <span className="text-xs">Active</span>
+              <span className="text-xs">({activeDeliveries.length})</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`flex-1 py-3 px-4 text-center ${
+              activeTab === "history"
+                ? "text-[#0A1A3F] font-medium"
+                : "text-gray-500"
+            }`}
+          >
+            <div className="flex flex-col items-center">
+              <TrendingUp className="w-5 h-5 mb-1" />
+              <span className="text-xs">History</span>
+            </div>
+          </button>
+        </div>
       </div>
 
       <DeliveryModal delivery={selectedDelivery} onClose={closeModal} />
