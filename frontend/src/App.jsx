@@ -26,6 +26,14 @@ import Checkout from "./components/Checkout.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
+// Unauthorized Page
+const Unauthorized = () => (
+  <div className="flex justify-center items-center min-h-screen">
+    <h1 className="text-2xl font-bold">Unauthorized Access</h1>
+    <p>You do not have permission to view this page.</p>
+  </div>
+);
+
 function App() {
   return (
     <ToastProvider>
@@ -40,7 +48,7 @@ function App() {
               <Route
                 path="/admin-dashboard"
                 element={
-                  <ProtectedRoute roles={["admin"]}>
+                  <ProtectedRoute roles={["admin"]} fallback={<Unauthorized />}>
                     <AdminDashboard />
                   </ProtectedRoute>
                 }
@@ -48,7 +56,10 @@ function App() {
               <Route
                 path="/customer-dashboard"
                 element={
-                  <ProtectedRoute roles={["customer"]}>
+                  <ProtectedRoute
+                    roles={["customer"]}
+                    fallback={<Unauthorized />}
+                  >
                     <CustomerDashboard />
                   </ProtectedRoute>
                 }
@@ -56,7 +67,7 @@ function App() {
               <Route
                 path="/staff-dashboard"
                 element={
-                  <ProtectedRoute roles={["staff"]}>
+                  <ProtectedRoute roles={["staff"]} fallback={<Unauthorized />}>
                     <StaffDashboard />
                   </ProtectedRoute>
                 }
@@ -64,7 +75,7 @@ function App() {
               <Route
                 path="/rider-dashboard"
                 element={
-                  <ProtectedRoute roles={["rider"]}>
+                  <ProtectedRoute roles={["rider"]} fallback={<Unauthorized />}>
                     <RiderDashboard />
                   </ProtectedRoute>
                 }
@@ -74,7 +85,10 @@ function App() {
               <Route
                 path="/orders"
                 element={
-                  <ProtectedRoute roles={["admin", "staff", "rider"]}>
+                  <ProtectedRoute
+                    roles={["admin", "staff", "rider"]}
+                    fallback={<Unauthorized />}
+                  >
                     <Orders />
                   </ProtectedRoute>
                 }
@@ -82,7 +96,10 @@ function App() {
               <Route
                 path="/customers"
                 element={
-                  <ProtectedRoute roles={["admin", "staff"]}>
+                  <ProtectedRoute
+                    roles={["admin", "staff"]}
+                    fallback={<Unauthorized />}
+                  >
                     <Customers />
                   </ProtectedRoute>
                 }
@@ -90,7 +107,10 @@ function App() {
               <Route
                 path="/menu"
                 element={
-                  <ProtectedRoute roles={["admin", "staff"]}>
+                  <ProtectedRoute
+                    roles={["admin", "staff"]}
+                    fallback={<Unauthorized />}
+                  >
                     <Menu />
                   </ProtectedRoute>
                 }
@@ -100,6 +120,7 @@ function App() {
                 element={
                   <ProtectedRoute
                     roles={["admin", "staff", "rider", "customer"]}
+                    fallback={<Unauthorized />}
                   >
                     <Feedback />
                   </ProtectedRoute>
@@ -108,7 +129,10 @@ function App() {
               <Route
                 path="/announcements"
                 element={
-                  <ProtectedRoute roles={["admin", "staff"]}>
+                  <ProtectedRoute
+                    roles={["admin", "staff"]}
+                    fallback={<Unauthorized />}
+                  >
                     <Announcements />
                   </ProtectedRoute>
                 }
@@ -116,7 +140,7 @@ function App() {
               <Route
                 path="/analytics"
                 element={
-                  <ProtectedRoute roles={["admin"]}>
+                  <ProtectedRoute roles={["admin"]} fallback={<Unauthorized />}>
                     <Analytics />
                   </ProtectedRoute>
                 }
@@ -126,7 +150,10 @@ function App() {
               <Route
                 path="/order-menu"
                 element={
-                  <ProtectedRoute roles={["customer"]}>
+                  <ProtectedRoute
+                    roles={["customer"]}
+                    fallback={<Unauthorized />}
+                  >
                     <OrderMenu />
                   </ProtectedRoute>
                 }
@@ -134,7 +161,10 @@ function App() {
               <Route
                 path="/checkout"
                 element={
-                  <ProtectedRoute roles={["customer"]}>
+                  <ProtectedRoute
+                    roles={["customer"]}
+                    fallback={<Unauthorized />}
+                  >
                     <Checkout />
                   </ProtectedRoute>
                 }

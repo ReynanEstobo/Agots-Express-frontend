@@ -91,14 +91,6 @@ const DeliveryModal = ({ delivery, onClose }) => {
               value={delivery.delivery_instructions}
             />
           )}
-          <BlockInfo
-            label="Assigned Rider"
-            value={
-              delivery.rider_name
-                ? `${delivery.rider_name} (${delivery.rider_phone})`
-                : "Not Assigned"
-            }
-          />
         </div>
 
         {/* FOOTER */}
