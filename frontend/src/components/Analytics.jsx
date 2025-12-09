@@ -108,10 +108,18 @@ const Analytics = () => {
         {
           title: "New Customers",
           value: Number(metrics.new_customers ?? 0).toLocaleString(),
-          change: calcPercentChange(
-            metrics.new_customers,
-            metrics.prev_new_customers
-          ),
+          change: (() => {
+            const current = Number(metrics.new_customers ?? 0);
+            const prev = Number(metrics.prev_new_customers ?? 0);
+
+            if (prev === 0 && current === 0) return "0% from last month";
+            if (prev === 0) return "+100% from last month";
+
+            let percent = Math.round(((current - prev) / prev) * 100); // round to whole number
+            if (percent > 100) percent = 100; // cap at 100%
+            const sign = percent > 0 ? "+" : "";
+            return `${sign}${percent}% from last month`; // no decimal
+          })(),
           icon: Users,
           iconColor: "bg-green-500",
         },
