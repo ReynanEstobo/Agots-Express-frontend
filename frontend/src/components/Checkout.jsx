@@ -121,59 +121,107 @@ const GCashLogo = () => (
   </div>
 );
 
-// Checkout Component
 const Checkout = () => {
   const { items, total, clearCart } = useCart();
   const navigate = useNavigate();
   const { addToast } = useToast();
 
-  // FIX: Initialize paymentMethod as empty string instead of "cash"
   const [paymentMethod, setPaymentMethod] = useState("");
   const [coordinates, setCoordinates] = useState([13.9503, 120.7334]);
   const [address, setAddress] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneValid, setPhoneValid] = useState(false);
+  const [phoneTouched, setPhoneTouched] = useState(false);
   const [email, setEmail] = useState("");
+  const [emailValid, setEmailValid] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
   const [instructions, setInstructions] = useState("");
   const deliveryFee = 50;
 
-  // FIX: Only add delivery fee if cash payment is selected
   const finalTotal = paymentMethod === "cash" ? total + deliveryFee : total;
+
+  // Phone number validation
+  const validatePhone = (phoneValue) => {
+    const phoneRegex = /^09\d{9}$/; // Starts with 09 followed by 9 digits
+    return phoneRegex.test(phoneValue);
+  };
+
+  const handlePhoneChange = (e) => {
+    const input = e.target.value.replace(/\D/g, "");
+    // Limit to 11 digits and ensure it starts with 09
+    if (input.length > 0 && input[0] !== "0") {
+      setPhone("0" + input.slice(0, 10));
+    } else {
+      setPhone(input.slice(0, 11));
+    }
+    setPhoneValid(validatePhone(input));
+    setPhoneTouched(true);
+  };
+
+  // Email validation
+  const validateEmail = (emailValue) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(emailValue);
+  };
+
+  const handleEmailChange = (e) => {
+    const input = e.target.value;
+    setEmail(input);
+    setEmailValid(validateEmail(input));
+    setEmailTouched(true);
+  };
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
 
-    if (!firstName || !lastName || !phone || !address) {
-      addToast({
-        title: "Missing Information",
-        description: "Please fill all required fields.",
-      });
-      return;
+    // Mark fields as touched for validation display
+    setPhoneTouched(true);
+    setEmailTouched(true);
+
+    // Validation checks
+    const validationErrors = [];
+
+    if (!firstName.trim()) {
+      validationErrors.push("First name is required");
     }
 
-    // FIX: Properly check if payment method is selected
+    if (!lastName.trim()) {
+      validationErrors.push("Last name is required");
+    }
+
+    if (!phone || !phoneValid) {
+      validationErrors.push(
+        "Please enter a valid phone number (e.g., 09123456789)"
+      );
+    }
+
+    if (!address.trim()) {
+      validationErrors.push("Delivery address is required");
+    }
+
+    if (email && !emailValid) {
+      validationErrors.push("Please enter a valid email address");
+    }
+
     if (!paymentMethod) {
-      addToast({
-        title: "Payment Method Required",
-        description: "Please select a payment method to continue.",
-      });
-      return;
+      validationErrors.push("Please select a payment method");
     }
 
     if (!items || items.length === 0) {
-      addToast({
-        title: "Cart Empty",
-        description: "Add items to your cart before placing an order.",
-      });
-      return;
+      validationErrors.push("Your cart is empty");
     }
 
     const userId = sessionStorage.getItem("user_id");
     if (!userId) {
+      validationErrors.push("Please log in to place an order");
+    }
+
+    if (validationErrors.length > 0) {
       addToast({
-        title: "Not Logged In",
-        description: "Please log in to place an order.",
+        title: "Validation Error",
+        description: validationErrors.join(", "),
       });
       return;
     }
@@ -216,7 +264,6 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-[#F5F5F5]">
-      {/* Header */}
       <header className="bg-[hsl(var(--primary))] text-white border-b border-white/10">
         <div className="max-w-[1280px] mx-auto px-6 py-4 flex items-center gap-2">
           <div className="w-10 h-10 rounded-lg bg-[hsl(var(--accent))] flex items-center justify-center">
@@ -266,18 +313,58 @@ const Checkout = () => {
                       id="phone"
                       type="tel"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={handlePhoneChange}
+                      placeholder="09123456789"
+                      maxLength={11}
+                      className={`border ${
+                        phoneTouched
+                          ? phoneValid
+                            ? "border-green-500"
+                            : "border-red-500"
+                          : "border-gray-300"
+                      }`}
                       required
                     />
+                    {phoneTouched && (
+                      <p
+                        className={`text-xs mt-1 ${
+                          phoneValid ? "text-green-500" : "text-red-500"
+                        }`}
+                      >
+                        {phoneValid
+                          ? "Valid phone number"
+                          : "Please enter a valid 11-digit phone number starting with 09"}
+                      </p>
+                    )}
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={handleEmailChange}
+                      placeholder="your.email@example.com"
+                      className={`border ${
+                        emailTouched
+                          ? emailValid
+                            ? "border-green-500"
+                            : "border-red-500"
+                          : "border-gray-300"
+                      }`}
                     />
+                    {emailTouched && email && (
+                      <p
+                        className={`text-xs mt-1 ${
+                          emailValid ? "text-green-500" : "text-red-500"
+                        }`}
+                      >
+                        {emailValid
+                          ? "Valid email address"
+                          : "Please enter a valid email address"}
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -328,7 +415,6 @@ const Checkout = () => {
                     value={paymentMethod}
                     onValueChange={setPaymentMethod}
                   >
-                    {/* Cash on Delivery Option */}
                     <div className="flex items-center space-x-2 p-4 border rounded-lg cursor-pointer mb-2">
                       <RadioGroupItem value="cash" id="cash" />
                       <Label
@@ -345,7 +431,6 @@ const Checkout = () => {
                       </Label>
                     </div>
 
-                    {/* GCash Option - Disabled with Under Development Badge */}
                     <div className="relative flex items-center space-x-2 p-4 border rounded-lg mb-2 bg-gray-100 opacity-50 pointer-events-none">
                       <UnderDevelopmentBadge />
                       <RadioGroupItem
@@ -408,7 +493,6 @@ const Checkout = () => {
                       <span>Subtotal</span>
                       <span>₱{total.toFixed(2)}</span>
                     </div>
-                    {/* FIX: Only show delivery fee if cash payment is selected */}
                     {paymentMethod === "cash" && (
                       <div className="flex justify-between">
                         <span>Delivery Fee</span>
@@ -444,6 +528,5 @@ const Checkout = () => {
     </div>
   );
 };
-
 
 export default Checkout;

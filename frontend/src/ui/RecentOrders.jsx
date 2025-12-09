@@ -17,12 +17,24 @@ export const RecentOrders = () => {
     try {
       setLoading(true);
       const ordersData = await fetchRecentOrders();
+
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date().toISOString().split("T")[0];
+
+      // Filter orders created today
+      const todaysOrders = ordersData.filter((order) => {
+        const createdDate = order.created_at.split("T")[0];
+        return createdDate === today;
+      });
+
+      // Attach order items
       const ordersWithItems = await Promise.all(
-        ordersData.map(async (order) => {
+        todaysOrders.map(async (order) => {
           const items = await fetchOrderItems(order.id);
           return { ...order, items };
         })
       );
+
       setOrders(ordersWithItems);
       setError("");
     } catch (err) {
