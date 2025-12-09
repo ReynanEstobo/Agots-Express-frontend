@@ -117,15 +117,13 @@ const AdminDashboard = () => {
                 <StatsCard
                   title="Customers"
                   value={stats.totalCustomers || 0}
-                  change={
-                    stats.customerPercentage !== undefined
-                      ? `${
-                          stats.customerPercentage >= 0 ? "+" : ""
-                        }${stats.customerPercentage.toFixed(1)}% from yesterday`
-                      : "0% from yesterday"
-                  }
+                  change={`${
+                    stats.customerGrowthPercentage || 0
+                  }% from yesterday`}
                   changeType={
-                    stats.customerPercentage >= 0 ? "positive" : "negative"
+                    (stats.customerGrowthPercentage || 0) >= 0
+                      ? "positive"
+                      : "negative"
                   }
                   icon={Users}
                   iconColor="bg-blue-400"
