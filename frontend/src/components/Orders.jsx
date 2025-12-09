@@ -38,7 +38,7 @@ const Orders = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [stats, setStats] = useState({
-    totalOrdersToday: 0,
+    totalOrdersAll: 0,
     preparing: 0,
     pending: 0,
     completed: 0,
@@ -59,16 +59,9 @@ const Orders = () => {
       );
       setOrders(sortedData);
 
-      // Today's date
-      const today = new Date().toISOString().split("T")[0];
-
-      // Stats
-      const totalOrdersToday = data.filter(
-        (o) => o.created_at.split("T")[0] === today
-      ).length;
-
+      // Stats (FIX: Use ALL orders)
       setStats({
-        totalOrdersToday,
+        totalOrdersAll: data.length,
         pending: data.filter((o) => o.status === "pending").length,
         preparing: data.filter((o) => o.status === "preparing").length,
         completed: data.filter((o) => o.status === "completed").length,
@@ -118,7 +111,7 @@ const Orders = () => {
   const statsCards = [
     {
       title: "Total Orders",
-      value: stats.totalOrdersToday,
+      value: stats.totalOrdersAll,
       iconColor: "bg-blue-400",
     },
     { title: "Preparing", value: stats.preparing, iconColor: "bg-orange-400" },
@@ -180,7 +173,6 @@ const Orders = () => {
             })}
           </div>
 
-          {/* Orders Table */}
           {/* Orders Table */}
           <Card>
             <CardHeader>
