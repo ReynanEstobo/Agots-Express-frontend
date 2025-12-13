@@ -510,7 +510,7 @@ const Landing = () => {
       <footer className="bg-[#0A1A3F] text-[#FFFFFF] py-8 px-6">
         <div className="container mx-auto text-center">
           <p className="text-[#FFFFFF]/70">
-            &copy; 2024 Agot's Restaurant. All rights reserved.
+            &copy; 2025 Agot's Restaurant. All rights reserved.
           </p>
         </div>
       </footer>
