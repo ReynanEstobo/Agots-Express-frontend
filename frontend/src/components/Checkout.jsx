@@ -1,8 +1,8 @@
 import { UtensilsCrossed, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAlert } from "../contexts/AlertContext"; // <-- updated
 import { useCart } from "../contexts/CartContext";
-import { useToast } from "../hooks/use-toast";
 import { Button } from "../ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { Input } from "../ui/Input";
@@ -124,7 +124,7 @@ const GCashLogo = () => (
 const Checkout = () => {
   const { items, total, clearCart } = useCart();
   const navigate = useNavigate();
-  const { addToast } = useToast();
+  const { addAlert } = useAlert(); // <-- updated
 
   const [paymentMethod, setPaymentMethod] = useState("");
   const [coordinates, setCoordinates] = useState([13.9503, 120.7334]);
@@ -142,15 +142,11 @@ const Checkout = () => {
 
   const finalTotal = paymentMethod === "cash" ? total + deliveryFee : total;
 
-  // Phone number validation
-  const validatePhone = (phoneValue) => {
-    const phoneRegex = /^09\d{9}$/; // Starts with 09 followed by 9 digits
-    return phoneRegex.test(phoneValue);
-  };
+  // Phone validation
+  const validatePhone = (phoneValue) => /^09\d{9}$/.test(phoneValue);
 
   const handlePhoneChange = (e) => {
     const input = e.target.value.replace(/\D/g, "");
-    // Limit to 11 digits and ensure it starts with 09
     if (input.length > 0 && input[0] !== "0") {
       setPhone("0" + input.slice(0, 10));
     } else {
@@ -161,10 +157,8 @@ const Checkout = () => {
   };
 
   // Email validation
-  const validateEmail = (emailValue) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(emailValue);
-  };
+  const validateEmail = (emailValue) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
 
   const handleEmailChange = (e) => {
     const input = e.target.value;
@@ -175,54 +169,27 @@ const Checkout = () => {
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
-
-    // Mark fields as touched for validation display
     setPhoneTouched(true);
     setEmailTouched(true);
 
-    // Validation checks
     const validationErrors = [];
-
-    if (!firstName.trim()) {
-      validationErrors.push("First name is required");
-    }
-
-    if (!lastName.trim()) {
-      validationErrors.push("Last name is required");
-    }
-
-    if (!phone || !phoneValid) {
+    if (!firstName.trim()) validationErrors.push("First name is required");
+    if (!lastName.trim()) validationErrors.push("Last name is required");
+    if (!phone || !phoneValid)
       validationErrors.push(
         "Please enter a valid phone number (e.g., 09123456789)"
       );
-    }
-
-    if (!address.trim()) {
-      validationErrors.push("Delivery address is required");
-    }
-
-    if (email && !emailValid) {
+    if (!address.trim()) validationErrors.push("Delivery address is required");
+    if (email && !emailValid)
       validationErrors.push("Please enter a valid email address");
-    }
-
-    if (!paymentMethod) {
-      validationErrors.push("Please select a payment method");
-    }
-
-    if (!items || items.length === 0) {
+    if (!paymentMethod) validationErrors.push("Please select a payment method");
+    if (!items || items.length === 0)
       validationErrors.push("Your cart is empty");
-    }
-
     const userId = sessionStorage.getItem("user_id");
-    if (!userId) {
-      validationErrors.push("Please log in to place an order");
-    }
+    if (!userId) validationErrors.push("Please log in to place an order");
 
     if (validationErrors.length > 0) {
-      addToast({
-        title: "Validation Error",
-        description: validationErrors.join(", "),
-      });
+      addAlert(validationErrors.join(", "), "error"); // <-- useAlert
       return;
     }
 
@@ -250,15 +217,12 @@ const Checkout = () => {
 
       const res = await placeOrder(orderData);
 
-      addToast({
-        title: "Order Placed!",
-        description: `Your order #${res.order_id} has been confirmed.`,
-      });
+      addAlert(`Your order #${res.order_id} has been confirmed.`, "success"); // <-- useAlert
 
       clearCart();
       navigate("/customer-dashboard");
     } catch (err) {
-      addToast({ title: "Failed to place order", description: err.message });
+      addAlert(`Failed to place order: ${err.message}`, "error"); // <-- useAlert
     }
   };
 

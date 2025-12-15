@@ -1,7 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { AlertProvider } from "./contexts/AlertContext"; // Replaced ToastProvider
 import { CartProvider } from "./contexts/CartContext";
 import { SocketProvider } from "./contexts/SocketContext";
-import { ToastProvider } from "./hooks/use-toast";
 
 import Analytics from "./components/Analytics.jsx";
 import Announcements from "./components/Announcement.jsx";
@@ -36,7 +36,9 @@ const Unauthorized = () => (
 
 function App() {
   return (
-    <ToastProvider>
+    <AlertProvider>
+      {" "}
+      {/* Replaced ToastProvider with AlertProvider */}
       <CartProvider>
         <SocketProvider>
           <BrowserRouter>
@@ -175,7 +177,7 @@ function App() {
           </BrowserRouter>
         </SocketProvider>
       </CartProvider>
-    </ToastProvider>
+    </AlertProvider>
   );
 }
 

@@ -17,7 +17,7 @@ import {
   fetchRiderOrders,
   fetchRiderStats,
 } from "../api/RiderAPI";
-import { useToast } from "../hooks/use-toast";
+import { useAlert } from "../contexts/AlertContext"; // Changed import
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
@@ -108,15 +108,10 @@ const DeliveryModal = ({ delivery, onClose }) => {
 };
 
 // -------------------- HEADER --------------------
-const RiderDashboardHeader = ({ riderName, riderId }) => {
+const RiderDashboardHeader = ({ riderName, riderId, onLogout }) => {
+  // Added onLogout prop
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const toggleAdminMenu = () => setShowAdminMenu(!showAdminMenu);
-
-  const handleLogout = () => {
-    alert("Logged out successfully!");
-    sessionStorage.clear();
-    window.location.href = "/";
-  };
 
   return (
     <header className="sticky top-0 bg-[#0A1A3F] text-white border-b border-white/10 z-40">
@@ -147,7 +142,7 @@ const RiderDashboardHeader = ({ riderName, riderId }) => {
             {showAdminMenu && (
               <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg py-2 text-sm z-20">
                 <button
-                  onClick={handleLogout}
+                  onClick={onLogout}
                   className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 hover:text-gray-900 w-full transition text-black"
                 >
                   <LogOut size={16} /> Log Out
@@ -163,7 +158,7 @@ const RiderDashboardHeader = ({ riderName, riderId }) => {
 
 // -------------------- RIDER DASHBOARD --------------------
 const RiderDashboard = () => {
-  const { addToast } = useToast();
+  const { addAlert } = useAlert(); // Changed to useAlert
   const riderId = sessionStorage.getItem("user_id");
 
   const [rider, setRider] = useState({ name: "Loading...", riderId: "" });
@@ -191,13 +186,13 @@ const RiderDashboard = () => {
         });
       } catch (err) {
         console.error(err);
-        addToast({ title: "Error", description: "Failed to fetch rider info" });
+        addAlert("Failed to fetch rider info", "error"); // Changed to addAlert
         setRider({ name: "Unknown Rider", riderId });
       }
     };
 
     getRiderInfo();
-  }, [riderId, addToast]);
+  }, [riderId, addAlert]);
 
   // -------------------- FETCH DELIVERIES --------------------
   const fetchDeliveries = async () => {
@@ -245,7 +240,7 @@ const RiderDashboard = () => {
       );
     } catch (err) {
       console.error(err);
-      addToast({ title: "Error", description: "Failed to fetch deliveries" });
+      addAlert("Failed to fetch deliveries", "error"); // Changed to addAlert
     }
   };
 
@@ -260,7 +255,7 @@ const RiderDashboard = () => {
       setStats(data);
     } catch (err) {
       console.error(err);
-      addToast({ title: "Error", description: "Failed to fetch stats" });
+      addAlert("Failed to fetch stats", "error"); // Changed to addAlert
     }
   };
 
@@ -272,12 +267,10 @@ const RiderDashboard = () => {
   const handleAcceptDelivery = async (deliveryId) => {
     try {
       await acceptDelivery(riderId, deliveryId);
-      addToast({
-        title: "Delivery Accepted",
-        description: `You've accepted delivery ORD-${String(
-          deliveryId
-        ).padStart(3, "0")}`,
-      });
+      addAlert(
+        `You've accepted delivery ORD-${String(deliveryId).padStart(3, "0")}`,
+        "success" // Changed to addAlert with type
+      );
       setActiveDeliveries((prev) =>
         prev.map((d) =>
           d.id === deliveryId ? { ...d, status: "on the way" } : d
@@ -286,7 +279,7 @@ const RiderDashboard = () => {
       fetchStats();
     } catch (err) {
       console.error(err);
-      addToast({ title: "Error", description: "Failed to accept delivery" });
+      addAlert("Failed to accept delivery", "error"); // Changed to addAlert
     }
   };
 
@@ -294,13 +287,13 @@ const RiderDashboard = () => {
   const handleMarkDelivered = async (deliveryId) => {
     try {
       await completeDelivery(riderId, deliveryId);
-      addToast({
-        title: "Delivery Completed",
-        description: `Delivery ORD-${String(deliveryId).padStart(
+      addAlert(
+        `Delivery ORD-${String(deliveryId).padStart(
           3,
           "0"
         )} marked as delivered`,
-      });
+        "success" // Changed to addAlert with type
+      );
 
       const delivered = activeDeliveries.find((d) => d.id === deliveryId);
       if (delivered) {
@@ -314,11 +307,15 @@ const RiderDashboard = () => {
       fetchStats();
     } catch (err) {
       console.error(err);
-      addToast({
-        title: "Error",
-        description: "Failed to mark delivery as completed",
-      });
+      addAlert("Failed to mark delivery as completed", "error"); // Changed to addAlert
     }
+  };
+
+  // -------------------- HANDLE LOGOUT --------------------
+  const handleLogout = () => {
+    addAlert("Logged out successfully!", "success"); // Changed to addAlert
+    sessionStorage.clear();
+    window.location.href = "/";
   };
 
   // -------------------- VIEW MODAL --------------------
@@ -341,7 +338,11 @@ const RiderDashboard = () => {
   return (
     <div className="min-h-screen bg-[#F5F5F5] pb-16">
       {/* HEADER */}
-      <RiderDashboardHeader riderName={rider.name} riderId={rider.riderId} />
+      <RiderDashboardHeader
+        riderName={rider.name}
+        riderId={rider.riderId}
+        onLogout={handleLogout} // Added onLogout prop
+      />
 
       {/* CONTENT */}
       <div className="max-w-1280 mx-auto px-4 sm:px-6 py-6 sm:py-8">

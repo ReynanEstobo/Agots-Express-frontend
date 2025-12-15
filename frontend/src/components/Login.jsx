@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginAllRoles, registerCustomer } from "../api/LoginAPI.js";
+import { useAlert } from "../contexts/AlertContext.jsx";
 import LoginForm from "./LoginForm";
 import SignupForm from "./SignupForm";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { addAlert } = useAlert();
   const [activeTab, setActiveTab] = useState("login");
 
   // ---------------- LOGIN FIELDS ----------------
@@ -43,13 +45,17 @@ const Login = () => {
     e.preventDefault();
     try {
       const res = await loginAllRoles(loginUsername, loginPassword);
-      if (!res || !res.role) return alert("Invalid username or password.");
+      if (!res || !res.role) {
+        addAlert("Invalid username or password.", "error");
+        return;
+      }
 
       sessionStorage.setItem("token", res.token || "");
       sessionStorage.setItem("role", res.role);
       sessionStorage.setItem("user_id", res.id);
 
-      alert(`Login Successful! You are logged in as ${res.role}`);
+      addAlert(`Login Successful! You are logged in as ${res.role}`, "success");
+
       if (res.role === "admin") navigate("/admin-dashboard");
       else if (res.role === "customer") navigate("/customer-dashboard");
       else if (res.role === "staff") navigate("/staff-dashboard");
@@ -57,7 +63,7 @@ const Login = () => {
       else navigate("/");
     } catch (err) {
       console.error(err);
-      alert(err.message || "Failed to connect to server.");
+      addAlert(err.message || "Failed to connect to server.", "error");
     }
   };
 
@@ -65,7 +71,8 @@ const Login = () => {
   const handleSignup = async (e) => {
     e.preventDefault();
     if (signupPassword !== signupConfirmPassword) {
-      return alert("Passwords do not match!");
+      addAlert("Passwords do not match!", "error");
+      return;
     }
     try {
       await registerCustomer({
@@ -77,7 +84,7 @@ const Login = () => {
         address: "",
       });
 
-      alert("Signup successful! You can now log in.");
+      addAlert("Signup successful! You can now log in.", "success");
       setSignupName("");
       setSignupEmail("");
       setSignupPhone("");
@@ -86,7 +93,7 @@ const Login = () => {
       setSignupConfirmPassword("");
       setActiveTab("login");
     } catch (err) {
-      alert(err.message);
+      addAlert(err.message, "error");
     }
   };
 

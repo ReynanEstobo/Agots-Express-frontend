@@ -15,7 +15,7 @@ import {
   fetchDashboardStats,
   updateOrderStatus,
 } from "../api/StaffAPI";
-import { useToast } from "../hooks/use-toast";
+import { useAlert } from "../contexts/AlertContext";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
@@ -56,7 +56,7 @@ const StaffDashboard = () => {
     availableRiders: 0,
   });
 
-  const { addToast } = useToast();
+  const { addAlert } = useAlert();
   const navigate = useNavigate();
   const userRole = "Staff";
 
@@ -65,10 +65,10 @@ const StaffDashboard = () => {
     const token = sessionStorage.getItem("token");
     const role = sessionStorage.getItem("role");
     if (!token || role !== "staff") {
-      alert("You must be logged in as staff to view this page.");
+      addAlert("You must be logged in as staff to view this page.", "error");
       navigate("/login");
     }
-  }, [navigate]);
+  }, [navigate, addAlert]);
 
   // ---------------- LOAD DASHBOARD DATA ----------------
   const loadDashboardData = async () => {
@@ -80,10 +80,7 @@ const StaffDashboard = () => {
       setOrders(orderData.orders || []);
       setAvailableRiders(orderData.riders || []);
     } catch (err) {
-      addToast({
-        title: "Error",
-        description: "Failed to load dashboard data",
-      });
+      addAlert("Failed to load dashboard data", "error");
     }
   };
 
@@ -126,48 +123,30 @@ const StaffDashboard = () => {
   const handlePrepareOrder = async (orderId) => {
     try {
       await updateOrderStatus(orderId, "preparing");
-      addToast({
-        title: "Order Updated",
-        description: `Order ${orderId} is now preparing`,
-      });
+      addAlert(`Order ${orderId} is now preparing`, "success");
       loadDashboardData();
     } catch {
-      addToast({
-        title: "Error",
-        description: `Failed to update order ${orderId}`,
-      });
+      addAlert(`Failed to update order ${orderId}`, "error");
     }
   };
 
   const handleMarkAsReady = async (orderId) => {
     try {
       await updateOrderStatus(orderId, "ready");
-      addToast({
-        title: "Order Updated",
-        description: `Order ${orderId} is ready for delivery`,
-      });
+      addAlert(`Order ${orderId} is ready for delivery`, "success");
       loadDashboardData();
     } catch {
-      addToast({
-        title: "Error",
-        description: `Failed to mark order ${orderId} as ready`,
-      });
+      addAlert(`Failed to mark order ${orderId} as ready`, "error");
     }
   };
 
   const handleAssignRider = async (orderId, riderId) => {
     try {
       await assignRiderToOrder(orderId, riderId);
-      addToast({
-        title: "Rider Assigned",
-        description: `Order ${orderId} assigned to rider ${riderId}`,
-      });
+      addAlert(`Order ${orderId} assigned to rider ${riderId}`, "success");
       loadDashboardData();
     } catch {
-      addToast({
-        title: "Error",
-        description: `Failed to assign rider to order ${orderId}`,
-      });
+      addAlert(`Failed to assign rider to order ${orderId}`, "error");
     }
   };
 
